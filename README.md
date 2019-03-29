@@ -12,6 +12,13 @@ Looking for feedback!
 
 - `ModelLoader` class depends on Ben Strasser's "Fast C++ CSV Parser" https://github.com/ben-strasser/fast-cpp-csv-parser
 
+### JavaScript
+
+Relies on Bela WebSocket server wrapper and integration with `Resonator.h` which is not ready to be shared yet...
+
+- `BelaWS.js`: connects to Bela over a Web Socket
+- `Resonators.js`: real-time bidirectional updating of resonator model, using `p5.js`
+
 ### Jupyter & Python
 
 Some convenience functions, not pretty yet...
