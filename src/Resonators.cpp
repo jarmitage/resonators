@@ -2,6 +2,11 @@
  * Resonators:
  * Resonator
  * ResonatorBank
+ * 
+ * https://github.com/jarmitage/resonators
+ * 
+ * Port of [resonators~] for Bela:
+ * https://github.com/CNMAT/CNMAT-Externs/blob/6f0208d3a1/src/resonators~/resonators~.c
  */
 
  #include "Resonators.h"
@@ -58,8 +63,8 @@ float Resonator::render (float excitation) {
     state.a1Prev = state.a1;
     state.b1Prev = state.b1;
     state.b2Prev = state.b2;
-    
-    return renderUtils.out1 * opt.outGain;
+  
+    return _min(renderUtils.out1 * opt.outGain, utils.hardLimit);
 }
 
 // get and set: main functions
@@ -120,6 +125,11 @@ const ResonatorParams Resonator::getParameters() {
 
 // private methods
 void Resonator::setState(){
+
+  // map from normalised input values to param ranges
+  params.gain  = mapGain(params.freq); // 0-1 -> 0-0.3
+  params.decay = mapDecay(params.decay); // 0-1 -> 0.5-50
+
   state.freqPrev  = params.freq;
   state.gainPrev  = params.gain;
   state.decayPrev = params.decay;
@@ -141,6 +151,32 @@ void Resonator::setState(){
 }
 void Resonator::clearRender() {renderUtils.out1 = renderUtils.out2 = 0.0;}
 void Resonator::clearState() {state.b1 = state.b2 = state.a1Prime = 0.0;}
+
+float Resonator::mapGain(float inputGain) {
+
+  // map
+  float outputGain = _map(inputGain, 0.0, 1.0, paramRanges.gainMin, paramRanges.gainMax);
+
+  // constrain
+  if (paramRanges.gainMin > outputGain) outputGain = paramRanges.gainMin;
+  if (paramRanges.gainMax < outputGain) outputGain = paramRanges.gainMax;
+
+  return outputGain;
+
+}
+
+float Resonator::mapDecay(float inputDecay) {
+
+  // map
+  float outputDecay = _map(inputDecay, 0.0, 1.0, paramRanges.decayMin, paramRanges.decayMax);
+
+  // constrain
+  if (paramRanges.decayMin > outputDecay) outputDecay = paramRanges.decayMin;
+  if (paramRanges.decayMax < outputDecay) outputDecay = paramRanges.decayMax;
+
+  return outputDecay;
+
+}
 
 /**************************************************************************
  * ResonatorBank
@@ -184,16 +220,6 @@ const std::vector<ResonatorParams> ResonatorBank::getBank() {
     return resBankParams;
 }
 
-void ResonatorBank::setupResonators(){
-  if (opt.v) rt_printf ("[ResonatorBank] Initialising bank of %d\n", opt.total);
-  opt.updateRTRate *= (utils.sampleRate / 1000.0);
-  for (int i = 0; i < opt.total; ++i) {
-    Resonator res;
-    res.setup (opt.resOpt, utils.sampleRate, utils.framesPerBlock);
-    resBank.push_back (res);
-  }
-}
-
 float ResonatorBank::renderResonator(int index, float excitation){
   return resBank[index].render(excitation);
 }
@@ -202,9 +228,20 @@ float ResonatorBank::render(float excitation){
   float out = 0.0f;
   for (int i = 0; i < opt.total; ++i) 
     out += renderResonator(i, excitation);
-  return out;
+  return _min(out, utils.hardLimit);
 }
 
 void ResonatorBank::update(){
   for (int i = 0; i < opt.total; ++i) resBank[i].update();
+}
+
+// private methods
+void ResonatorBank::setupResonators(){
+  if (opt.v) rt_printf ("[ResonatorBank] Initialising bank of %d\n", opt.total);
+  opt.updateRTRate *= (utils.sampleRate / 1000.0);
+  for (int i = 0; i < opt.total; ++i) {
+    Resonator res;
+    res.setup (opt.resOpt, utils.sampleRate, utils.framesPerBlock);
+    resBank.push_back (res);
+  }
 }

@@ -2,6 +2,11 @@
  * Resonators:
  * Resonator
  * ResonatorBank
+ * 
+ * https://github.com/jarmitage/resonators
+ * 
+ * Port of [resonators~] for Bela:
+ * https://github.com/CNMAT/CNMAT-Externs/blob/6f0208d3a1/src/resonators~/resonators~.c
  */
 
 #include <cmath>
@@ -38,6 +43,7 @@ typedef struct _ResonatorUtils {
     float frameInterval;
     float interpTime = 16; // in blocks / MAGIC NUMBER!
     float M_2PI = M_PI * 2.0;
+    float hardLimit = 0.999;
     
 } ResonatorUtils;
 
@@ -108,6 +114,18 @@ private:
     void setState();
     void clearRender();
     void clearState();
+
+    struct ParameterRanges
+    {
+        float gainMin;
+        float gainMax;
+        float decayMin;
+        float decayMax;
+    };
+    const ParameterRanges paramRanges = {0,0.3,0.05,50.0};
+
+    float mapGain(float inputGain);
+    float mapDecay(float inputDecay);
     
 };
 
@@ -161,5 +179,15 @@ private:
     void setupResonators();
     
 };
+
+static inline float _map(float x, float in_min, float in_max, float out_min, float out_max)
+{
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+static inline float _min(float x, float y)
+{
+    return (x < y)? x : y;
+}
 
 #endif /* ResonatorBank_H_ */
