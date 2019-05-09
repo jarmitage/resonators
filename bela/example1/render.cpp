@@ -1,7 +1,6 @@
 #include <Bela.h>
 
 #include "Resonators.h"
-#include "Model.h"
 
 // Example 1: an individual resonator
 
@@ -11,7 +10,7 @@ ResonatorOptions options; // will initialise to default
 bool setup (BelaContext *context, void *userData) {
 
   res.setup(options, context->audioSampleRate, context->audioFrames);
-  res.setParameters(440, 0.1, 10); // freq, gain (0-0.3), decay (0-50)
+  res.setParameters(440, 0.1, 0.5); // freq, gain, decay
   res.update(); // update the state of the resonator based on the new parameters
 
   return true;
