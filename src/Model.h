@@ -97,7 +97,7 @@ public:
   ModelMetadata getMetadata() { return metadata; }
   std::wstring getName() { return metadata.name; }
   float getFundamental() { return metadata.fundamental; }
-  float getF0() { getFundamental(); } // synonym
+  float getF0() { return getFundamental(); } // synonym
   int getSize() { return metadata.resonators; }
 
   // Model transposition functions exist in two categories: `shift` and `getShifted`.
@@ -210,7 +210,7 @@ private:
         // TODO: Add more type validation
         metadata.name = (std::wstring) mdObj[L"name"]->AsString();
         metadata.fundamental = (float) mdObj[L"fundamental"]->AsNumber();
-        metadata.resonators = (int) mdObj[L"size"]->AsNumber();
+        metadata.resonators = (int) mdObj[L"resonators"]->AsNumber();
 
         if (opt.v) {
             rt_printf("\n[ModelLoader] Metadata\n\n");
