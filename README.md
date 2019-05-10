@@ -75,12 +75,14 @@ The corresponding `marimba.json`:
 
 ---
 
-### JavaScript
+### `p5.js` GUI
 
 WIP! Relies on Bela WebSocket server wrapper and integration with `Resonator.h`.
 
 - `BelaWS.js`: connects to Bela over a Web Socket
 - `Resonators.js`: real-time bidirectional updating of resonator model, using `p5.js`
+
+![p5_gui](https://raw.githubusercontent.com/jarmitage/resonators/master/img/p5_gui.png)
 
 ---
 
@@ -92,6 +94,8 @@ Some convenience functions, not pretty yet...
 - Working with models as Pandas dataframes
 - Loading/saving/converting to/from `.csv`  `.coll` & `.json`
 - `scp`-ing models to Bela for real-time updates
+
+![jupyter_plot](https://raw.githubusercontent.com/jarmitage/resonators/master/img/jupyter_plot.png)
 
 ---
 
