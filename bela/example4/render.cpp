@@ -18,7 +18,7 @@ int audioPerAnalog;
 
 bool setup (BelaContext *context, void *userData) {
 
-  model.load("models/marimba_normalized.json");
+  model.load("models/marimba.json");
   resBankOptions.total = model.getSize();
 
   resBank.reserve(pitches.size());

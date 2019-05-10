@@ -29,7 +29,7 @@ bool setup (BelaContext *context, void *userData) {
 
   scope.setup(4, context->audioSampleRate);
 
-  model.load("models/marimba_normalized.json");
+  model.load("models/marimba.json");
   resBankOptions.total = model.getSize();
 
   resBank.reserve(pitches.size());

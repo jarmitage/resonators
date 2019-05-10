@@ -18,7 +18,7 @@ unsigned int updateModelTaskCounter = 0;
 
 bool setup (BelaContext *context, void *userData) {
 
-  model.load("models/marimba_normalized.json");
+  model.load("models/marimba.json");
   resBankOptions.total = model.getSize();
 
   resBank.setup(resBankOptions, context->audioSampleRate, context->audioFrames);
