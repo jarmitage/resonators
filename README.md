@@ -104,6 +104,9 @@ Some convenience functions, not pretty yet...
 - Add examples for real-time manipulation of model parameters
 - Add functions for useful/interesting real-time variation of model parameters
 
+##### Models
+- Generate models based on samples (using [HPSS](http://librosa.github.io/librosa/generated/librosa.decompose.hpss.html)?)
+
 ##### Data analysis/offline exploration
 - Clean up Python utils
 - Python bindings for `Resonators.cpp` for offline synthesis
