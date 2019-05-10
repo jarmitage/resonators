@@ -105,7 +105,8 @@ Some convenience functions, not pretty yet...
 - Add functions for useful/interesting real-time variation of model parameters
 
 ##### Models
-- Generate models based on samples (using [HPSS](http://librosa.github.io/librosa/generated/librosa.decompose.hpss.html)?)
+- Real-time functions for simple scaling of `gain` and `decay` parameters
+- Generate models (offline) based on samples (using [HPSS](http://librosa.github.io/librosa/generated/librosa.decompose.hpss.html)?)
 
 ##### Data analysis/offline exploration
 - Clean up Python utils
