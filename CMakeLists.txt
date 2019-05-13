@@ -19,13 +19,13 @@ message(STATUS "PYTHONLIBS_VERSION_STRING: ${PYTHONLIBS_VERSION_STRING}")
 
 include_directories(${PYTHON_INCLUDE_PATH})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(src include)
+include_directories(cpp include)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/py)
 set(CMAKE_SWIG_OUTDIR ${CMAKE_CURRENT_BINARY_DIR}/py)
 set(CMAKE_SWIG_FLAGS "")
 
-add_library(resonatorscpp SHARED include/JSON.h include/JSON.cpp include/JSONValue.h include/JSONValue.cpp src/Model.h src/Resonators.h src/Resonators.cpp)
+add_library(resonatorscpp SHARED include/JSON.h include/JSON.cpp include/JSONValue.h include/JSONValue.cpp cpp/Model.h cpp/Resonators.h cpp/Resonators.cpp)
 
 set_source_files_properties(py/resonators.i PROPERTIES CPLUSPLUS ON)
 
