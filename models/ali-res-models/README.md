@@ -1,7 +1,7 @@
 # aLib resonance models
 
-Collection of resonance models of mostly percussion instruments.
-
+> Collection of resonance models of mostly percussion instruments.
+>
 > Resonance models made with ResAn from IRCAM's Diphone Studio. Analyzed instruments include: 
 >
 > - Indian percussion instruments (Chakoa, Dhalki, Hand-Dhal, khol, Madal, Manjeera, Mirdangam, Stick-Dhal) 
