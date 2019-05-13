@@ -3,8 +3,6 @@
  * ModelLoader
  * https://github.com/jarmitage/resonators
  * 
- * Port of [resonators~] for Bela:
- * https://github.com/CNMAT/CNMAT-Externs/blob/6f0208d3a1/src/resonators~/resonators~.c
  */
 
 #include <string>
