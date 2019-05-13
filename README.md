@@ -106,6 +106,15 @@ Some convenience functions, not pretty yet...
 - Pd example patches: https://github.com/batchku/aLib/tree/master/for%20resonators
 - Example resonance models: http://alimomeni.net/project/alib-resonance-models
 
+
+### Python Bindings
+
+- At the top level directory, run `cmake .`, and then `make`.
+- If this succeeds, run `py/test_bindings.py` to confirm.
+- For now, you can crudely `sys.path.append` the directory to import the module.
+
+_Note_: this has been tested with Python 3.6.5 (and should support Python 2.7+), SWIG 4.0.0 and CMake 3.14.3 on OSX 10.14.
+
 ---
 
 ### TODO

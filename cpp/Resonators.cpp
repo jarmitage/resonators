@@ -237,7 +237,7 @@ void ResonatorBank::update(){
 
 // private methods
 void ResonatorBank::setupResonators(){
-  if (opt.v) rt_printf ("[ResonatorBank] Initialising bank of %d\n", opt.total);
+  if (opt.v) printf ("[ResonatorBank] Initialising bank of %d\n", opt.total);
   opt.updateRTRate *= (utils.sampleRate / 1000.0);
   for (int i = 0; i < opt.total; ++i) {
     Resonator res;
