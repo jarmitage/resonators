@@ -11,6 +11,7 @@
 #include <map>
 
 #include <JSON.h>
+#include<Resonators.h>
 
 #ifndef ModelLoader_H_
 #define ModelLoader_H_
@@ -71,7 +72,7 @@ public:
     // Read the JSON file into a `wstring`
     std::wstring data = L"";
     if (readJSONFile (opt.path, data) == false) {
-        rt_printf ("[ModelLoader] Error: could not load model JSON file \'%s\'\n", opt.path.c_str());
+        //rt_printf ("[ModelLoader] Error: could not load model JSON file \'%s\'\n", opt.path.c_str());
     } else {
 
         // Parse the JSON and break out two main child objects `metadata` and `resonators`
@@ -83,7 +84,7 @@ public:
         parseMetadataJSON   (metadataJSON);
         parseResonatorsJSON (resonatorsJSON);
         
-        if (opt.v) rt_printf ("[ModelLoader] Loaded model \'%s\'\n", opt.path.c_str());
+        //if (opt.v) rt_printf ("[ModelLoader] Loaded model \'%s\'\n", opt.path.c_str());
     
     }
 
@@ -118,7 +119,7 @@ public:
     if (opt.v) {
         int targetMidi = freqToMidi(targetFreq);
         std::string targetNote = midiToNoteName(targetMidi);
-        rt_printf("[Model] Shifted model to fundamental [ Name: \'%s\' | MIDI: %i | Freq: %.2f ]\n", targetNote.c_str(), targetMidi, targetFreq);
+        //rt_printf("[Model] Shifted model to fundamental [ Name: \'%s\' | MIDI: %i | Freq: %.2f ]\n", targetNote.c_str(), targetMidi, targetFreq);
     }
 
     float shiftRatio = targetFreq / metadata.fundamental;
@@ -136,7 +137,7 @@ public:
     if (opt.v) {
         int targetMidi = freqToMidi(targetFreq);
         std::string targetNote = midiToNoteName(targetMidi);
-        rt_printf("[Model] Returning shifted model with fundamental [ Name: \'%s\' | MIDI: %i | Freq: %.2f ]\n", targetNote.c_str(), targetMidi, targetFreq);
+        //rt_printf("[Model] Returning shifted model with fundamental [ Name: \'%s\' | MIDI: %i | Freq: %.2f ]\n", targetNote.c_str(), targetMidi, targetFreq);
     }
 
     std::vector<ResonatorParams> shiftedModel;
@@ -171,7 +172,7 @@ public:
   // TODO: delete at some point and provide better debug functions if needed
   void debugPrintModel(){
     for (int i = 0; i < model.size(); ++i){
-      rt_printf("%i f:%f g:%f d:%f\n", i, model[i].freq, model[i].gain, model[i].decay);
+      //rt_printf("%i f:%f g:%f d:%f\n", i, model[i].freq, model[i].gain, model[i].decay);
     }
   }
 
@@ -211,11 +212,11 @@ private:
         metadata.resonators = (int) mdObj[L"resonators"]->AsNumber();
 
         if (opt.v) {
-            rt_printf("\n[ModelLoader] Metadata\n\n");
-            rt_printf("    Name:        %ls\n",  metadata.name.c_str());
-            rt_printf("    Fundamental: %.2f\n", metadata.fundamental);
-            rt_printf("    Resonators:  %i\n",   metadata.resonators);
-            rt_printf("\n");
+            //rt_printf("\n[ModelLoader] Metadata\n\n");
+            //rt_printf("    Name:        %ls\n",  metadata.name.c_str());
+            //rt_printf("    Fundamental: %.2f\n", metadata.fundamental);
+            //rt_printf("    Resonators:  %i\n",   metadata.resonators);
+            //rt_printf("\n");
         }
 
     }
@@ -224,9 +225,9 @@ private:
     void parseResonatorsJSON(JSONValue* resJSON) {
 
         if (opt.v) {
-            rt_printf("\n[ModelLoader] Resonators\n\n");
-            rt_printf("    # |  Freq   |  Gain  |  Decay\n");
-            rt_printf("   -------------------------------\n");
+            //rt_printf("\n[ModelLoader] Resonators\n\n");
+            //rt_printf("    # |  Freq   |  Gain  |  Decay\n");
+            //rt_printf("   -------------------------------\n");
         }
 
         JSONArray resArray = resJSON->AsArray();
@@ -244,11 +245,11 @@ private:
             ResonatorParams tmp_p = {tmp_f, tmp_g, tmp_d};
             model.push_back(tmp_p); // TODO: does this actually work when reloading? use emplace instead?
 
-            if (opt.v) rt_printf ("    %i | %.2f | %.3f | %.3f\n", i, tmp_f, tmp_g, tmp_d);
+            //if (opt.v) rt_printf ("    %i | %.2f | %.3f | %.3f\n", i, tmp_f, tmp_g, tmp_d);
         
         }
 
-        if (opt.v) rt_printf("\n");
+        //if (opt.v) rt_printf("\n");
 
     }
 
@@ -275,7 +276,7 @@ private:
             return findNote->second;
         }
         else {
-            if (opt.v) rt_printf("[Model] Error: note not found \'%ls\'\n", noteName.c_str());
+            //if (opt.v) rt_printf("[Model] Error: note not found \'%ls\'\n", noteName.c_str());
             return -1;
         }
     }

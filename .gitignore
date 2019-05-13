@@ -1,1 +1,14 @@
 .DS_Store
+
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Makefile
+cmake_install.cmake
+
+__pycache__
+*.so
+*.dylib
+*PYTHON_wrap.cxx
+resonators.py
