@@ -65,6 +65,17 @@ The corresponding `marimba.json`:
 
 ---
 
+### Resonance models
+
+Collection of ~100 resonance models of mostly percussion instruments, based on [aLib resonance models](http://alimomeni.net/project/alib-resonance-models/)
+
+- Indian percussion instruments (Chakoa, Dhalki, Hand-Dhal, khol, Madal, Manjeera, Mirdangam, Stick-Dhal)
+- A set of 12 Ghanaian double-bells, recorded with hard and soft beater
+- Guitar strings plucked behind the bridge
+- SampleCell Dumbeck, Gong
+
+---
+
 ### `p5.js` GUI
 
 WIP! Relies on Bela WebSocket server wrapper and integration with `Resonator.h`.
