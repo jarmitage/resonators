@@ -106,6 +106,7 @@ Some convenience functions, not pretty yet...
 - Pd example patches: https://github.com/batchku/aLib/tree/master/for%20resonators
 - Example resonance models: http://alimomeni.net/project/alib-resonance-models
 
+---
 
 ### Python Bindings
 
@@ -129,8 +130,8 @@ _Note_: this has been tested with Python 3.6.5 (and should support Python 2.7+),
 - Generate models (offline) based on samples (using [HPSS](http://librosa.github.io/librosa/generated/librosa.decompose.hpss.html)?)
 
 ##### Data analysis/offline exploration
+[x] Python bindings for `Resonators.cpp` for offline synthesis (merged [05c089c](https://github.com/jarmitage/resonators/commit/291681df3f56fd44a8118ba048b1ceeae8ed7749))
 - Clean up Python utils
-- Python bindings for `Resonators.cpp` for offline synthesis
 - Add Jupyter notebook examples
 
 ##### p5.js
