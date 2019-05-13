@@ -45,24 +45,24 @@ localPlotsPath = '../data/plots/'
 indianDrumModels = pd.Series(['Chakoa-8','Chakoa-9','Dhalki-2','Duggi-4','Hand-Dhal','khol','Madal','Manjeera-1','Mirdangam-1','Mirdangam-4','Mirdangam-15','Mirdangam-low-1','Stick-Dhal-1','Stick-Dhal-8'])
 indianDrumModels = '../models/csv/indian-roots_' + indianDrumModels
 
-def coll2df (file):
+def coll2df (file, ext='coll'):
     # this function will read a `resonators~` `.coll` model file into a Pandas DataFrame
-    directory, ext = localModelsPath+"pd/", '.coll' # path and extension
+    directory, ext = localModelsPath+"pd/", '.'+ext # path and extension
     df = pd.read_csv(directory+file+ext, sep=",",index_col=0,header=None) # load model
     df[1] = df[1].str.strip() # strip whitespace
     df = pd.DataFrame(df[1].str.split(' ',n=3,expand=True)) # split values into columns
     df.index.name = '' # remove index name
     df.columns = ['freq','gain','decay'] # name columns
-    df['Decay'] = df['Decay'].str[:-1] # remove `;` from Decay column values
+    df['decay'] = df['decay'].str[:-1] # remove `;` from Decay column values
     df = df.apply(pd.to_numeric) # convert from string to float
     return df
 
-def df2coll (df, file):
-    pdListMessage  = ' ' + df['Frequency'].astype(str)
-    pdListMessage += ' ' + df['Gain'].astype(str)
-    pdListMessage += ' ' + df['Decay'].astype(str) + ';'
+def df2coll (df, file, ext='coll'):
+    pdListMessage  = ' ' + df['freq'].astype(str)
+    pdListMessage += ' ' + df['gain'].astype(str)
+    pdListMessage += ' ' + df['decay'].astype(str) + ';'
     pdModel = pd.Series(pdListMessage.values)
-    pdModel.to_csv(localModelsPath+file+'.coll', header=False)
+    pdModel.to_csv(localModelsPath+file+'.'+ext, header=False)
 
 def csv2df (file):
     df = pd.read_csv(localModelsPath+file, sep=',', header=None)
