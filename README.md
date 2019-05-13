@@ -110,6 +110,20 @@ Some convenience functions, not pretty yet...
 
 ### Python Bindings
 
+Bindings for Python are available via [Swig](http://www.swig.org/), meaning Resonators can be used from a Python script or a Jupyter notebook:
+
+```python
+model = resonators.ModelLoader()
+model.load(args.model_path)
+rb_ops = resonators.ResonatorBankOptions()
+rb_ops.total = model.getSize()
+rb = resonators.ResonatorBank()
+rb.setup(rb_ops, 44100.0, 128)
+rb.setBank(model.getShiftedToNote("c4"))
+rb.update()
+out = rb.render(0.5)
+```
+
 - At the top level directory, run `cmake .`, and then `make`.
 - If this succeeds, run `py/test_bindings.py` to confirm.
 - For now, you can crudely `sys.path.append` the directory to import the module.
