@@ -132,6 +132,12 @@ _Note_: this has been tested with Python 3.6.5 (and should support Python 2.7+),
 
 ---
 
+### License
+
+Unless otherwise stated, [CC0](https://creativecommons.org/share-your-work/public-domain/cc0/).
+
+---
+
 ### TODO
 
 ##### Resonators
