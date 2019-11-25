@@ -1,271 +1,306 @@
 /*
- * Resonators:
- * Resonator
- * ResonatorBank
- * 
+ * Resonators
  * https://github.com/jarmitage/resonators
  * 
  * Port of [resonators~] for Bela:
  * https://github.com/CNMAT/CNMAT-Externs/blob/6f0208d3a1/src/resonators~/resonators~.c
  */
 
-/*
-Copyright (c) 1999.  The Regents of the University of California (Regents).
-All Rights Reserved.
-Permission to use, copy, modify, and distribute this software and its
-documentation for educational, research, and not-for-profit purposes, without
-fee and without a signed licensing agreement, is hereby granted, provided that
-the above copyright notice, this paragraph and the following two paragraphs
-appear in all copies, modifications, and distributions.  Contact The Office of
-Technology Licensing, UC Berkeley, 2150 Shattuck Avenue, Suite 510, Berkeley,
-CA 94720-1620, (510) 643-7201, for commercial licensing opportunities.
-Written by Adrian Freed, The Center for New Music and Audio Technologies,
-University of California, Berkeley.
-     IN NO EVENT SHALL REGENTS BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,
-     SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
-     ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
-     REGENTS HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-     REGENTS SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT
-     LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-     FOR A PARTICULAR PURPOSE. THE SOFTWARE AND ACCOMPANYING
-     DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED "AS IS".
-     REGENTS HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
-     ENHANCEMENTS, OR MODIFICATIONS.
-*/
-
 #include "Resonators.h"
 
-ResonatorUtils _setupResonatorUtils (float sampleRate, float framesPerBlock) {
-  ResonatorUtils tmp = {};
-  tmp.sampleRate     = sampleRate;
-  tmp.sampleInterval = 1 / tmp.sampleRate;
-  tmp.nyquistLimit   = 0.955 * tmp.sampleRate * 0.5;
-  tmp.framesPerBlock = framesPerBlock;
-  tmp.frameInterval  = 1 / tmp.framesPerBlock;
-  tmp.interpTime     = tmp.frameInterval / tmp.interpTime;
-  return tmp;
+Resonators::Resonators(){}
+Resonators::~Resonators(){}
+
+void Resonators::setup(std::string projectName, float sampleRate, float audioFrames){
+
+  resBankOptions.total = defaultModelSize;
+  model.reserve(defaultModelSize);
+  resBank.setup(resBankOptions, sampleRate, audioFrames);
+
+  wsopt.projectName = projectName;
+  ws.setup(wsopt.projectName, wsopt.port, wsopt.name);
+  ws.setControlDataCallback([this](const char* buf, int bufLen, void* customData)->bool{
+    onControl(buf, bufLen);
+    return true;
+  });
+
 }
 
-/**************************************************************************
- * Resonator
- *************************************************************************/
-
-Resonator::Resonator(){}
-Resonator::Resonator(ResonatorOptions options, float sampleRate, float framesPerBlock) {
-  setup (options, sampleRate, framesPerBlock);
-}
-Resonator::~Resonator(){}
-
-void Resonator::setup (ResonatorOptions options, float sampleRate, float framesPerBlock) {
-  opt = options;
-  utils = _setupResonatorUtils (sampleRate, framesPerBlock);
-}
-void Resonator::initParams(const float freq, const float gain, const float decay){
-    ResonatorParams tmpParams = {freq, gain, decay};
-    setParameters(tmpParams);
-    update();
+void Resonators::load(std::string modelPath) {
+  model.load(modelPath);
+  resBankOptions.total = model.getSize();
+  resBank.setOptions(resBankOptions);
+  resBank.setBank(getModel());
+  // TODO: pitch?
 }
 
-// resonator: main update and render functions
-void Resonator::update(){ setState(); }
-void Resonator::impulse (float impulse) { if (impulse < 0.1) renderUtils.out2 += state.a1Prime * impulse; }
-float Resonator::render (float excitation) {
-    renderUtils.yo = renderUtils.out1;
-    renderUtils.yn = renderUtils.out2;
-    renderUtils.x  = renderUtils.yo;
-    
-    float term1 = state.b1Prev * renderUtils.yo;
-    float term2 = state.b2Prev * renderUtils.yn;
-    float term3 = state.a1Prev * excitation;
-    
-    renderUtils.yo = term1 + term2 + term3;
-    renderUtils.yn = renderUtils.x;
-    
-    renderUtils.out1 = renderUtils.yo;
-    renderUtils.out2 = renderUtils.yn;
-    
-    state.a1Prev = state.a1;
-    state.b1Prev = state.b1;
-    state.b2Prev = state.b2;
+void Resonators::setModel(JSONValue *modelJSON) {
+  model.parse(modelJSON);
+  resBankOptions.total = model.getSize();
+  resBank.setOptions(resBankOptions);
+  resBank.setBank(getShiftedToNote(pitch));
+  // resBank.shiftToNote(pitch);
+  resBank.update();
+  // TODO: pitch?
+}
+
+// -------- MULTI BANK -----------------
+
+void Resonators::setup(int numBanks, std::string projectName, float sampleRate, float audioFrames){
+
+  banks = numBanks;
+
+  resBankOptions.total = defaultModelSize;
+
+  for (int i = 0; i < banks; ++i) {
+    ModelLoader tmp_model;
+    // tmp_model.reserve(defaultModelSize);
+    models.push_back(tmp_model);
+    models[i].reserve(defaultModelSize);
+
+    ResonatorBank tmp_res;
+    tmp_res.setup(resBankOptions, sampleRate, audioFrames);
+    bank.push_back(tmp_res);
+  }
+
+  wsopt.projectName = projectName;
+  // ws.setup(wsopt.port, wsopt.name, wsopt.projectName);
+  ws.setup(wsopt.projectName, wsopt.port, wsopt.name);
+  ws.setControlDataCallback([this](const char* buf, int bufLen, void* customData)->bool{
+    onControl(buf, bufLen);
+    return true;
+  });
+
+}
+
+void Resonators::load(int bankIndex, std::string modelPath) {
+  // TODO: index out of range check
+  int i = bankIndex;
+  models[i].load(modelPath);  
+  resBankOptions.total = models[i].getSize();
+  bank[i].setOptions(resBankOptions);
+  bank[i].setBank(getModel(i));
+}
+
+void Resonators::setModelAtBankIndex(int bankIndex, JSONValue *modelJSON) {
+  // TODO: index out of range check
+  int i = bankIndex;
+  models[i].parse(modelJSON);
+  resBankOptions.total = models[i].getSize();
+  bank[i].setOptions(resBankOptions);
+  bank[i].setBank(getShiftedToNote(i, pitch));
+  bank[i].update();
+}
+
+void Resonators::setResonatorParamAtBankIndex(int bankIndex, int resIndex, int paramIndex, float value) {
+  bank[bankIndex].setResonatorParam(resIndex, paramIndex, value);
+
+  rt_printf("[Resonators] setResonatorParamAtBankIndex() param %d: ", paramIndex);
+  ResonatorParams params = bank[bankIndex].getResonator(resIndex);
+  models[bankIndex].prettyPrintResonator(resIndex, params);
+}
+
+void Resonators::setResonatorAtBankIndex(int bankIndex, int resIndex, ResonatorParams params) {
+  bank[bankIndex].setResonator(resIndex, params);
+  rt_printf("[Resonators] setResonatorAtBankIndex() bank %d :", bankIndex);
+  models[bankIndex].prettyPrintResonator(resIndex, params);
+}
+
+void Resonators::setResonatorsAtBankIndex(int bankIndex, std::vector<int> indices, ResonatorParamVects paramVects) {
+  for (int i = 0; i < indices.size(); ++i) {
+    ResonatorParams p = {paramVects.freqs[i], paramVects.gains[i], paramVects.decays[i]};
+    setResonatorAtBankIndex(bankIndex, indices[i], p);
+  }
+}
+
+void Resonators::setResonatorsTest() {
+  // TODO: Move this func to Resonators.cpp as testSomething() ?
+  int bankIndex  = 0;
+  int resIndex   = 0;
+  int paramIndex = 0;
+  ResonatorParams p = {440.0f, 0.9f, 0.1f};
+
+  setResonatorParamAtBankIndex (bankIndex, resIndex, paramIndex, p.freq);
+  setResonatorAtBankIndex      (bankIndex, resIndex, p);
   
-    return _min(renderUtils.out1 * opt.outGain, utils.hardLimit);
+  // std::vector<int> indexes = {0, 4, 7};
+  // ResonatorParamVects paramVects = {
+  //   {440.0f,  880.0f,  1320.0f},
+  //   {p.gain,  p.gain,  p.gain},
+  //   {p.decay, p.decay, p.decay},
+  // };
+
+  // res.setResonatorsAtBankIndex (bankIndex, indexes, paramVects);
+
+  printModelAtIndex(bankIndex);
 }
 
-// get and set: main functions
-void Resonator::setParam(void* theResonator, const int index, const float value){
-    Resonator* resonator = (Resonator*) theResonator;
-    switch (index){
-        case kFreq :
-            resonator->params.freq = value;
-            break;
-        case kGain :
-            resonator->params.gain = value;
-            break;
-        case kDecay :
-            resonator->params.decay = value;
-            break;
-        default :
-            printf("[Resonator] setParam(): Invalid Parameter Requested.\n");
-            //            rt_printf("[Resonator] setParam(): Invalid Parameter Requested.\n");
+void Resonators::printModelAtIndex(int index){
+  models[index].prettyPrintModel();
+}
+
+// ------------------------
+
+void Resonators::onControl(const char* buf, int bufLen) {
+
+  JSONValue *value = parseJSON(buf);
+  JSONObject root = value->AsObject();
+
+  // look for the "event" key
+  if (root.find(L"event") != root.end() && root[L"event"]->IsString()){
+    std::wstring event = root[L"event"]->AsString();
+    if (event.compare(L"connection-reply") == 0){
+      wsopt.isConnected = true;
     }
+  } else if (root.find(L"command") != root.end() && root[L"command"]->IsString()){
+    
+    std::wstring cmd = root[L"command"]->AsString();
+    JSONValue *args = value->Child(L"args");
+
+    if (cmd.compare(L"setResonator")           == 0) rt_printf("TODO: setResonator().\n");
+    if (cmd.compare(L"setModel")               == 0) setModel(args);
+    if (cmd.compare(L"setModelAtIndex")        == 0) onSetModelAtBankIndex(args);
+    if (cmd.compare(L"setResAtBankIndex")      == 0) onSetResAtBankIndex(args);
+    if (cmd.compare(L"setRessAtBankIndex")     == 0) onSetRessAtBankIndex(args);
+    if (cmd.compare(L"setResParamAtBankIndex") == 0) onSetResParamAtBankIndex(args);
+
+  } else {
+    rt_printf("[Resonators] Received JSON with unknown root name. Did not parse.\n");
+  }
+
+
+  delete value;
 }
 
-const float Resonator::getParam(void* theResonator, const int index){
-    Resonator* resonator = (Resonator*) theResonator;
-    switch (index){
-        case kFreq :
-            return resonator->params.freq;
-        case kGain :
-            return resonator->params.gain;
-        case kDecay :
-            return resonator->params.decay;
-        default :
-            //rt_printf("[Resonator] getParam(): Invalid Parameter Requested.\n");
-            printf("[Resonator] getParam(): Invalid Parameter Requested.\n");
-    }
-    return -1.0f;
+JSONValue* Resonators::parseJSON(const char* buf){
+  // parse the data into a JSONValue
+  JSONValue *value = JSON::Parse(buf);
+  if (value == NULL || !value->IsObject()){
+    fprintf(stderr, "Could not parse JSON:\n%s\n", buf);
+    return nullptr;
+  }
+  return value;
 }
 
-// Non-static versions of get and set (that use the static versions.)
-void Resonator::setParameter(const int index, const float value){
-  setParam(this, index, value);
-};
-const float Resonator::getParameter(const int index){
-  return getParam(this, index);
-};
-void Resonator::setParameters(ResonatorParams resParams) {
-  setParam(this, kFreq, resParams.freq);
-  setParam(this, kGain, resParams.gain);
-  setParam(this, kDecay, resParams.decay);
-}
-void Resonator::setParameters(float _freq, float _gain, float _decay){
-  setParam(this, kFreq, _freq);
-  setParam(this, kGain, _gain);
-  setParam(this, kDecay, _decay); 
-}
-const ResonatorParams Resonator::getParameters() {
-  return params;
+// ----------- WS control funcs --------------
+
+void Resonators::onSetModelAtBankIndex(JSONValue *args) {
+  JSONObject argsObj = args->AsObject();
+
+  int index        = (int) argsObj[L"index"]->AsNumber();
+  JSONValue *model = args->Child(L"model");
+
+  // rt_printf("index: %d\n", index);
+  setModelAtBankIndex(index, model);
 }
 
-// private methods
-void Resonator::setState(){
-
-  // map from normalised input values to param ranges
-  params.gain  = mapGain(params.freq); // 0-1 -> 0-0.3
-  params.decay = mapDecay(params.decay); // 0-1 -> 0.5-50
-
-  state.freqPrev  = params.freq;
-  state.gainPrev  = params.gain;
-  state.decayPrev = params.decay;
+void Resonators::onSetResAtBankIndex(JSONValue *args) {
+  JSONObject argsObj = args->AsObject();
   
-  utils.decaySamples = exp (-params.decay * utils.sampleInterval);
+  int bankIndex = (int) argsObj[L"bankIndex"]->AsNumber();
+  int resIndex  = (int) argsObj[L"resIndex"]->AsNumber();
+
+  ResonatorParams params = model.parseResonatorJSON(argsObj);
+
+  // ResonatorParams params;
+  // params.freq   = (float) argsObj[L"freq"]->AsNumber();
+  // params.gain   = (float) argsObj[L"gain"]->AsNumber();
+  // params.decay  = (float) argsObj[L"decay"]->AsNumber();
   
-  if (0.0 >= params.freq || params.freq >= utils.nyquistLimit ||
-      0.0 >= utils.decaySamples || utils.decaySamples > 1.0) {
-      clearState();
+  setResonatorAtBankIndex(bankIndex, resIndex, params);
+
+}
+
+void Resonators::onSetResParamAtBankIndex(JSONValue *args) {
+  JSONObject argsObj = args->AsObject();
+
+  int bankIndex  = (int) argsObj[L"bankIndex"]->AsNumber();
+  int resIndex   = (int) argsObj[L"resIndex"]->AsNumber();
+  int paramIndex = (int) argsObj[L"paramIndex"]->AsNumber();
+
+  float value    = (float) argsObj[L"value"]->AsNumber();
+
+  setResonatorParamAtBankIndex(bankIndex, resIndex, paramIndex, value);
+}
+
+void Resonators::onSetRessAtBankIndex(JSONValue *args) {
+  JSONObject argsObj = args->AsObject();
+
+  int bankIndex  = (int) argsObj[L"bankIndex"]->AsNumber();
+
+  JSONArray resIndicesArray = argsObj[L"resIndices"]->AsArray();
+  std::vector<int> indices;
+  for (int i = 0; i < resIndicesArray.size(); ++i) 
+    indices[i] = (int) resIndicesArray[i]->AsNumber();
+
+  // TODO: What should this actually be.
+
+  // JSONArray paramVectsArray = argsObj[L"resIndices"]->AsArray();
+
+  // JSONValue *paramVectsValue = args->Child(L"paramVects");
+
+  // Remodel.parseResonatorJSON(argsObj);
+
+  // JSONValue *paramVectFreqs->Child(L"freqs");
+  // JSONValue *paramVectGains->Child(L"gains");
+  // JSONValue *paramVectDecays->Child(L"decays");
+
+  // ResonatorParamVects paramVects;
+
+  // setResonatorsAtBankIndex(bankIndex, indices, paramVects);
+}
+
+// ----------- WS utils --------------
+
+bool Resonators::isConnected(){
+  // TODO: Is this relevant anymore?
+  wsopt.isConnected = ws.isConnected();
+  return wsopt.isConnected;
+}
+
+void Resonators::monitor() {
+  if (ws.isConnected() && !wsopt.isConnected) {
+    rt_printf("[Resonators] Connected\n");
+    onConnect();
+  } else if (!ws.isConnected() && wsopt.isConnected) {
+    rt_printf("[Resonators] Disconnected\n");
+    onDisconnect();
   }
-  else {
-      state.freqPrime = params.freq * utils.M_2PI * utils.sampleInterval; // w / pole angle?
-      float ts = params.gain * sin (state.freqPrime); // q / pole magnitude?
-      state.a1 = ts * (1.0 - utils.decaySamples);
-      state.b2 = -utils.decaySamples * utils.decaySamples; // r?
-      state.b1 = utils.decaySamples * cos (state.freqPrime) * 2.0; // c? / cutoff?
-      state.a1Prime = ts / state.b2;
-  }
-}
-void Resonator::clearRender() {renderUtils.out1 = renderUtils.out2 = 0.0;}
-void Resonator::clearState() {state.b1 = state.b2 = state.a1Prime = 0.0;}
-
-float Resonator::mapGain(float inputGain) {
-
-  // map
-  float outputGain = _map(inputGain, 0.0, 1.0, paramRanges.gainMin, paramRanges.gainMax);
-
-  // constrain
-  if (paramRanges.gainMin > outputGain) outputGain = paramRanges.gainMin;
-  if (paramRanges.gainMax < outputGain) outputGain = paramRanges.gainMax;
-
-  return outputGain;
-
+  isConnected();
 }
 
-float Resonator::mapDecay(float inputDecay) {
-
-  // map
-  float outputDecay = _map(inputDecay, 0.0, 1.0, paramRanges.decayMin, paramRanges.decayMax);
-
-  // constrain
-  if (paramRanges.decayMin > outputDecay) outputDecay = paramRanges.decayMin;
-  if (paramRanges.decayMax < outputDecay) outputDecay = paramRanges.decayMax;
-
-  return outputDecay;
-
+void Resonators::onConnect() {
+  // TODO: Is this relevant anymore?
+  // wsopt.modelSent = false;
 }
 
-/**************************************************************************
- * ResonatorBank
- *************************************************************************/
-
-ResonatorBank::ResonatorBank(){}
-ResonatorBank::ResonatorBank(ResonatorBankOptions options, float sampleRate, float framesPerBlock){
-    setup (options, sampleRate, framesPerBlock);
-}
-ResonatorBank::~ResonatorBank(){}
-
-void ResonatorBank::setup(ResonatorBankOptions options, float sampleRate, float framesPerBlock){
-    opt = options;
-    utils = _setupResonatorUtils (sampleRate, framesPerBlock);
-    setupResonators();
+void Resonators::onDisconnect() {
+  // TODO: Is this relevant anymore?
+  wsopt.modelSent = false;
 }
 
-void ResonatorBank::setResonatorParam(const int resIndex, const int paramIndex, const float value) {
-    resBank[resIndex].setParameter(paramIndex, value);
-}
+// void Resonators::txModel(ResonatorParamVects resBankVects) {
 
-const float ResonatorBank::getResonatorParam(const int resIndex, const int paramIndex) {
-    return resBank[resIndex].getParameter(paramIndex);
-}
+//   rt_printf("[ResonatorsWS] Sending model\n");
 
-void ResonatorBank::setResonator(const int index, const ResonatorParams params) {
-    resBank[index].setParameters(params); // &params?
-}
+//   ws.sendBuffer(kFreqs,  resBankVects.freqs);
+//   ws.sendBuffer(kGains,  resBankVects.gains);
+//   ws.sendBuffer(kDecays, resBankVects.decays);
+      
+//   wsopt.modelSent = true;
 
-const ResonatorParams ResonatorBank::getResonator(const int index) {
-    return resBank[index].getParameters();
-}
+// }
 
-void ResonatorBank::setBank(std::vector<ResonatorParams> bankParams) {
-    for (int i = 0; i < opt.total; ++i) setResonator(i, bankParams[i]);
-}
+// void Resonators::ifConnectedTxModel(ResonatorParamVects resBankVects) {
+//   if(isConnected() && !wsopt.modelSent) txModel(resBankVects);
+// }
 
-const std::vector<ResonatorParams> ResonatorBank::getBank() {
-    std::vector<ResonatorParams> resBankParams;
-    for (int i = 0; i < opt.total; ++i) resBankParams.push_back(getResonator(i));
-    return resBankParams;
-}
+// void Resonators::txResonator(int resIndex, ResonatorParams resParams) {
+//   std::vector<float> resTx {(float)resIndex, resParams.freq, resParams.gain, resParams.decay};
+//   ws.sendBuffer(kResonator, resTx);
+// }
 
-float ResonatorBank::renderResonator(int index, float excitation){
-  return resBank[index].render(excitation);
-}
-
-float ResonatorBank::render(float excitation){
-  float out = 0.0f;
-  for (int i = 0; i < opt.total; ++i) 
-    out += renderResonator(i, excitation);
-  return _min(out, utils.hardLimit);
-}
-
-void ResonatorBank::update(){
-  for (int i = 0; i < opt.total; ++i) resBank[i].update();
-}
-
-// private methods
-void ResonatorBank::setupResonators(){
-  if (opt.v) printf ("[ResonatorBank] Initialising bank of %d\n", opt.total);
-  opt.updateRTRate *= (utils.sampleRate / 1000.0);
-  for (int i = 0; i < opt.total; ++i) {
-    Resonator res;
-    res.setup (opt.resOpt, utils.sampleRate, utils.framesPerBlock);
-    resBank.push_back (res);
-  }
-}
+// void Resonators::txResonatorParam(int resIndex, int paramIndex, float param){
+//   std::vector<float> paramTx {(float)resIndex, (float)paramIndex, param};
+//   ws.sendBuffer(kParam, paramTx);
+// }

@@ -1,217 +1,133 @@
 /*
- * Resonators:
- * Resonator
- * ResonatorBank
- * 
+ * Resonators
  * https://github.com/jarmitage/resonators
  * 
  * Port of [resonators~] for Bela:
  * https://github.com/CNMAT/CNMAT-Externs/blob/6f0208d3a1/src/resonators~/resonators~.c
  */
 
-/*
-Copyright (c) 1999.  The Regents of the University of California (Regents).
-All Rights Reserved.
-Permission to use, copy, modify, and distribute this software and its
-documentation for educational, research, and not-for-profit purposes, without
-fee and without a signed licensing agreement, is hereby granted, provided that
-the above copyright notice, this paragraph and the following two paragraphs
-appear in all copies, modifications, and distributions.  Contact The Office of
-Technology Licensing, UC Berkeley, 2150 Shattuck Avenue, Suite 510, Berkeley,
-CA 94720-1620, (510) 643-7201, for commercial licensing opportunities.
-Written by Adrian Freed, The Center for New Music and Audio Technologies,
-University of California, Berkeley.
-     IN NO EVENT SHALL REGENTS BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,
-     SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
-     ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF
-     REGENTS HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-     REGENTS SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT
-     LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-     FOR A PARTICULAR PURPOSE. THE SOFTWARE AND ACCOMPANYING
-     DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED "AS IS".
-     REGENTS HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
-     ENHANCEMENTS, OR MODIFICATIONS.
-*/
+#ifndef Resonators_H_
+#define Resonators_H_
 
 #include <cmath>
 #include <stdio.h>
 #include <vector>
-#include <string>
+#include <string> 
 
-/**************************************************************************
- * Resonator
- *************************************************************************/
+#include <libraries/Gui/Gui.h>
+#include "ResonatorBank.h"
+#include "ModelLoader.h"
 
-#ifndef Resonator_H_
-#define Resonator_H_
-
-typedef struct _ResonatorOptions {
-    float outGain = 100.0f;
-} ResonatorOptions;
-
-typedef struct _ResonatorParams {
-    
-    float freq;
-    float gain;
-    float decay;
-    
-} ResonatorParams;
-
-typedef struct _ResonatorUtils {
-    
-    float sampleRate;
-    float sampleInterval;
-    float decaySamples;
-    float nyquistLimit;
-    float framesPerBlock;
-    float frameInterval;
-    float interpTime = 16; // in blocks / MAGIC NUMBER!
-    float M_2PI = M_PI * 2.0;
-    float hardLimit = 0.999;
-    
-} ResonatorUtils;
-
-class Resonator {
+class Resonators {
 public:
-    
-    enum ResonatorParamsEnum {
-        kFreq,
-        kGain,
-        kDecay
-    };
-    
-    Resonator();
-    Resonator(ResonatorOptions options, float sampleRate, float framesPerBlock);
-    ~Resonator();
-    
-    // setup and initialisation
-    void setup (ResonatorOptions options, float sampleRate, float framesPerBlock);
-    void initParams(const float freq, const float gain, const float decay);
-    
-    // resonator: main update and render functions
-    void update();
-    void impulse (float impulse);
-    float render (float excitation);
-    
-    // get and set: main functions
-    void setParam(void* theResonator, const int index, const float value);
-    const float getParam(void* theResonator, const int index);
-    
-    // Non-static versions of get and set (that use the static versions.)
-    void setParameter(const int index, const float value);
-    const float getParameter(const int index);
-    void setParameters(ResonatorParams resParams);
-    void setParameters(float _freq, float _gain, float _decay);
-    const ResonatorParams getParameters();
-    
-private:
-    ResonatorOptions opt = {};
-    ResonatorParams params = {};
-    ResonatorUtils utils = {};
-    
-    struct State
-    {
-        float freqPrev;
-        float gainPrev;
-        float decayPrev;
-        float freqPrime;
-        float a1;
-        float b1;
-        float b2;
-        float a1Prev;
-        float b1Prev;
-        float b2Prev;
-        float a1Prime;
-    };
-    State state = {};
-    
-    struct RenderUtils {
-        float x;
-        float yo;
-        float yn;
-        float out1;
-        float out2;
-    };
-    RenderUtils renderUtils = {};
-    
-    // private methods
-    void setState();
-    void clearRender();
-    void clearState();
+    Resonators();
+    ~Resonators(); 
 
-    struct ParameterRanges
-    {
-        float gainMin;
-        float gainMax;
-        float decayMin;
-        float decayMax;
-    };
-    const ParameterRanges paramRanges = {0,0.3,0.05,50.0};
+    void setup(std::string projectName, float sampleRate, float audioFrames);
+    void load(std::string modelPath);
+    void setModel(JSONValue *modelJSON);
 
-    float mapGain(float inputGain);
-    float mapDecay(float inputDecay);
-    
-};
+    // MULTI BANK
+    void setup(int numBanks, std::string projectName, float sampleRate, float audioFrames);
+    void load(int bankIndex, std::string modelPath);
+    void updateAll() { for (int i = 0; i < banks; ++i) update(i); }
+    void update(int index) { 
+        // TODO: index out of range check
+        bank[index].update(); 
+    }
+    void shiftToNote(int index, std::string targetNote) { 
+        // TODO: index out of range check
+        models[index].shiftToNote(targetNote);
+    }
+    std::vector<ResonatorParams> getShiftedToNote(int index, std::string targetNote) { 
+        // TODO: index out of range check
+        return models[index].getShiftedToNote(targetNote);
+    }
+    float render(int index, float in) { 
+        // TODO: index out of range check
+        return bank[index].render(in); 
+    }
 
-#endif /* Resonator_H_ */
+    JSONValue* parseJSON(const char* buf);
+    void onSetModelAtBankIndex(JSONValue *args);
+    void onSetResAtBankIndex(JSONValue *args);
+    void onSetRessAtBankIndex(JSONValue *args);
+    void onSetResParamAtBankIndex(JSONValue *args);
+    void setModelAtBankIndex(int bankIndex, JSONValue *modelJSON);
+    void setResonatorParamAtBankIndex(int bankIndex, int resIndex, int paramIndex, float param);
+    void setResonatorAtBankIndex(int bankIndex, int resIndex, ResonatorParams params);
+    void setResonatorsAtBankIndex(int bankIndex, std::vector<int> indices, ResonatorParamVects paramVects);
+    void setResonatorsTest(); // test setResonatorXXX functions
 
-/**************************************************************************
- * ResonatorBank
- *************************************************************************/
+    void printModelAtIndex(int index);
 
-#ifndef ResonatorBank_H_
-#define ResonatorBank_H_
+    // ResonatorBank
+    void update() { resBank.update(); }
+    float render(float in) { return resBank.render(in); }
 
-typedef struct _ResonatorBankOptions {
-    
-    bool res = true; // global on/off
-    int  total; // total resonators
-    bool render = true; // should render
-    bool updateRT = true; // should update in real-time
-    int  updateRTRate; // millis
-    bool v = true; // verbose printing
+    // ModelLoader
+    std::vector<ResonatorParams> getModel(){ return model.getModel(); }
+    std::vector<ResonatorParams> getModel(int index){ 
+        // TODO: index out of range check
+        return models[index].getModel(); 
+    }
+    ModelMetadata getMetadata() { return model.getMetadata(); }
+    std::wstring getName() { return model.getName(); }
+    float getFundamental() { return model.getFundamental(); }
+    float getF0() { return getFundamental(); }
+    int getSize() { return model.getSize(); }
+    void shiftToFreq(float targetFreq) { model.shiftToFreq(targetFreq); }
+    void shiftByFreq(float shiftNote)  { model.shiftByFreq(shiftNote); }
+    void shiftToNote(float targetNote) { model.shiftToNote(targetNote); }
+    void shiftByNotes(float shiftNote) { model.shiftByNotes(shiftNote); }
+    void shiftToNote(std::string targetNote) { model.shiftToNote(targetNote); }
+    void shiftByNotes(std::string targetNote) { model.shiftByNotes(targetNote); }
+    std::vector<ResonatorParams> getShiftedToFreq(float targetFreq) { return model.getShiftedToFreq(targetFreq);}
+    std::vector<ResonatorParams> getShiftedByFreq(float shiftFreq)  { return model.getShiftedByFreq(shiftFreq); }
+    std::vector<ResonatorParams> getShiftedToNote(float targetNote) { return model.getShiftedToNote(targetNote); }
+    std::vector<ResonatorParams> getShiftedByNotes(float shiftNote) { return model.getShiftedByNotes(shiftNote); }
+    std::vector<ResonatorParams> getShiftedToNote(std::string targetNote) { return model.getShiftedToNote(targetNote); }
+    std::vector<ResonatorParams> getShiftedByNotes(std::string shiftNote) { return model.getShiftedByNotes(shiftNote); }
 
-    ResonatorOptions resOpt = {};
-    
-} ResonatorBankOptions;
+    void setRes() {
+        resBank.setBank(getModel());
+    }
 
-class ResonatorBank {
-public:
-    ResonatorBank();
-    ResonatorBank(ResonatorBankOptions options, float sampleRate, float framesPerBlock);
-    ~ResonatorBank();
-    
-    void setup(ResonatorBankOptions options, float sampleRate, float framesPerBlock);
+    void setRes(int bankIndex, int modelIndex) {
+        // TODO: index out of range check
+        bank[bankIndex].setBank(getModel(modelIndex));
+    }
 
-    void setResonatorParam(const int resIndex, const int paramIndex, const float value);
-    const float getResonatorParam(const int resIndex, const int paramIndex);
-    void setResonator(const int index, const ResonatorParams params);
-    const ResonatorParams getResonator(const int index);
-    void setBank(std::vector<ResonatorParams> bankParams);
-    const std::vector<ResonatorParams> getBank();
-    
-    float renderResonator(int index, float excitation);
-    float render(float excitation);    
-    void update();
+    void setNote(std::string note) {
+        pitch = note;
+    }
+
+    // WebSocket comms
+    void onControl(const char* buf, int bufLen);
+    void monitor();
+    bool isConnected();
+    void onConnect();
+    void onDisconnect();
+
+    // void txModel(ResonatorParamVects resBankVects);
+    // void ifConnectedTxModel(ResonatorParamVects resBankVects);
+    // void txResonator(int resIndex, ResonatorParams resParams);
+    // void txResonatorParam(int resIndex, int paramIndex, float param);
+
+    std::vector<ResonatorBank> bank;
 
 private:
-    ResonatorBankOptions opt = {};
-    ResonatorUtils utils = {};
-    
-    std::vector<Resonator> resBank;
-    
-    void setupResonators();
-    
+    ResonatorBank resBank;
+    ResonatorBankOptions resBankOptions = {};
+    ModelLoader model;
+    std::vector<ModelLoader> models;
+    std::string pitch;
+
+    ResonatorsWSOptions wsopt = {};
+    Gui ws;
+
+    int defaultModelSize = 40; // TODO: resize resBank dynamically
+    int banks = 0;
 };
 
-static inline float _map(float x, float in_min, float in_max, float out_min, float out_max)
-{
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-static inline float _min(float x, float y)
-{
-    return (x < y)? x : y;
-}
-
-#endif /* ResonatorBank_H_ */
+#endif /* Resonators_H_ */
