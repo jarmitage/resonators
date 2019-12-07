@@ -22,7 +22,7 @@ bool setup (BelaContext *context, void *userData) {
   resBankOptions.total = model.getSize();
 
   resBank.setup(resBankOptions, context->audioSampleRate, context->audioFrames);
-  resBank.setBank(model.get()); // pass the model parameters to the resonator bank
+  resBank.setBank(model.getModel()); // pass the model parameters to the resonator bank
   resBank.update(); // update the state of the bank based on the model parameters
 
   updateModelTaskInterval *= (int)(context->audioSampleRate / 1000); // ms to samples

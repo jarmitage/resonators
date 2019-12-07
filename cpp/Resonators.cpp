@@ -151,7 +151,7 @@ const ResonatorParams Resonator::getParameters() {
 void Resonator::setState(){
 
   // map from normalised input values to param ranges
-  params.gain  = mapGain(params.freq); // 0-1 -> 0-0.3
+  params.gain  = mapGain(params.gain); // 0-1 -> 0-0.3
   params.decay = mapDecay(params.decay); // 0-1 -> 0.5-50
 
   state.freqPrev  = params.freq;
