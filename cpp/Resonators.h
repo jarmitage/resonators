@@ -13,121 +13,67 @@
 #include <stdio.h>
 #include <vector>
 #include <string> 
+#include <locale> 
+#include <codecvt>
 
 #include <libraries/Gui/Gui.h>
 #include "ResonatorBank.h"
 #include "ModelLoader.h"
+// #include "../Utils/Pitch.h"
 
 class Resonators {
 public:
     Resonators();
-    ~Resonators(); 
+    ~Resonators();
 
-    void setup(std::string projectName, float sampleRate, float audioFrames);
-    void load(std::string modelPath);
-    void setModel(JSONValue *modelJSON);
+    void setup(std::vector<std::string> modelPaths, std::vector<std::string> pitches, float sampleRate, float audioFrames, bool startGui);
 
-    // MULTI BANK
-    void setup(int numBanks, std::string projectName, float sampleRate, float audioFrames);
-    void load(int bankIndex, std::string modelPath);
-    void updateAll() { for (int i = 0; i < banks; ++i) update(i); }
-    void update(int index) { 
-        // TODO: index out of range check
-        bank[index].update(); 
-    }
-    void shiftToNote(int index, std::string targetNote) { 
-        // TODO: index out of range check
-        models[index].shiftToNote(targetNote);
-    }
-    std::vector<ResonatorParams> getShiftedToNote(int index, std::string targetNote) { 
-        // TODO: index out of range check
-        return models[index].getShiftedToNote(targetNote);
-    }
-    float render(int index, float in) { 
-        // TODO: index out of range check
-        return bank[index].render(in); 
-    }
+    void update();
+    void updateModel(int index);
 
-    JSONValue* parseJSON(const char* buf);
-    void onSetModelAtBankIndex(JSONValue *args);
-    void onSetResAtBankIndex(JSONValue *args);
-    void onSetRessAtBankIndex(JSONValue *args);
-    void onSetResParamAtBankIndex(JSONValue *args);
-    void setModelAtBankIndex(int bankIndex, JSONValue *modelJSON);
-    void setResonatorParamAtBankIndex(int bankIndex, int resIndex, int paramIndex, float param);
-    void setResonatorAtBankIndex(int bankIndex, int resIndex, ResonatorParams params);
-    void setResonatorsAtBankIndex(int bankIndex, std::vector<int> indices, ResonatorParamVects paramVects);
-    void setResonatorsTest(); // test setResonatorXXX functions
+    float render(float in);
+    float render(int index, float in);
+    std::vector<float> render(std::vector<float> inputs);
 
-    void printModelAtIndex(int index);
+    void setModel(int bankIndex, std::string modelPath);
+    void setModel(int bankIndex, JSONValue *modelJSON);
+    void setPitch(int bankIndex, std::string pitch);
+    // void setModels(std::vector<std::string> modelPaths);
+    // void setModels(std::vector<JSONValue> *modelsJSON);
+    // void setPitches(std::vector<std::string> pitches);
 
-    // ResonatorBank
-    void update() { resBank.update(); }
-    float render(float in) { return resBank.render(in); }
+private:
+    // WebSocket
+    Gui _ws;
+    ResonatorsWSOptions _wsOpt = {};
+    void setupWebSocket();
 
-    // ModelLoader
-    std::vector<ResonatorParams> getModel(){ return model.getModel(); }
-    std::vector<ResonatorParams> getModel(int index){ 
-        // TODO: index out of range check
-        return models[index].getModel(); 
-    }
-    ModelMetadata getMetadata() { return model.getMetadata(); }
-    std::wstring getName() { return model.getName(); }
-    float getFundamental() { return model.getFundamental(); }
-    float getF0() { return getFundamental(); }
-    int getSize() { return model.getSize(); }
-    void shiftToFreq(float targetFreq) { model.shiftToFreq(targetFreq); }
-    void shiftByFreq(float shiftNote)  { model.shiftByFreq(shiftNote); }
-    void shiftToNote(float targetNote) { model.shiftToNote(targetNote); }
-    void shiftByNotes(float shiftNote) { model.shiftByNotes(shiftNote); }
-    void shiftToNote(std::string targetNote) { model.shiftToNote(targetNote); }
-    void shiftByNotes(std::string targetNote) { model.shiftByNotes(targetNote); }
-    std::vector<ResonatorParams> getShiftedToFreq(float targetFreq) { return model.getShiftedToFreq(targetFreq);}
-    std::vector<ResonatorParams> getShiftedByFreq(float shiftFreq)  { return model.getShiftedByFreq(shiftFreq); }
-    std::vector<ResonatorParams> getShiftedToNote(float targetNote) { return model.getShiftedToNote(targetNote); }
-    std::vector<ResonatorParams> getShiftedByNotes(float shiftNote) { return model.getShiftedByNotes(shiftNote); }
-    std::vector<ResonatorParams> getShiftedToNote(std::string targetNote) { return model.getShiftedToNote(targetNote); }
-    std::vector<ResonatorParams> getShiftedByNotes(std::string shiftNote) { return model.getShiftedByNotes(shiftNote); }
-
-    void setRes() {
-        resBank.setBank(getModel());
-    }
-
-    void setRes(int bankIndex, int modelIndex) {
-        // TODO: index out of range check
-        bank[bankIndex].setBank(getModel(modelIndex));
-    }
-
-    void setNote(std::string note) {
-        pitch = note;
-    }
-
-    // WebSocket comms
+    // Control data parsing functions
     void onControl(const char* buf, int bufLen);
+    JSONValue* parseJSON(const char* buf);
+    void onSetModel(JSONValue *args);
+    void onSetPitch(JSONValue *args);
+    
+    // WebSocket comms
     void monitor();
     bool isConnected();
     void onConnect();
     void onDisconnect();
 
-    // void txModel(ResonatorParamVects resBankVects);
-    // void ifConnectedTxModel(ResonatorParamVects resBankVects);
-    // void txResonator(int resIndex, ResonatorParams resParams);
-    // void txResonatorParam(int resIndex, int paramIndex, float param);
+    std::vector<ResonatorBankOptions> _bankOpts;
+    std::vector<ResonatorBank>        _banks;
+    std::vector<ModelLoader>          _models;
+    std::vector<std::string>          _modelPaths;
+    std::vector<std::string>          _pitches;
+    int _totalBanks = 0;
+    // Pitch _p;
 
-    std::vector<ResonatorBank> bank;
+    void printModel(int index);
+    void printDebugModel(int index);
+    void printDebugBank(int index);
 
-private:
-    ResonatorBank resBank;
-    ResonatorBankOptions resBankOptions = {};
-    ModelLoader model;
-    std::vector<ModelLoader> models;
-    std::string pitch;
-
-    ResonatorsWSOptions wsopt = {};
-    Gui ws;
-
-    int defaultModelSize = 40; // TODO: resize resBank dynamically
-    int banks = 0;
+    std::wstring s2ws(const std::string& str);
+    std::string ws2s(const std::wstring& wstr);
 };
 
 #endif /* Resonators_H_ */

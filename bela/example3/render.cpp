@@ -1,8 +1,8 @@
 #include <vector>
 #include <Bela.h>
 
-#include "Resonators.h"
-#include "Model.h"
+#include "ResonatorBank.h"
+#include "ModelLoader.h"
 
 // Example 3: a bank of resonators based on a model file, updating periodically
 // This assumes you are e.g. sending updated models via `scp` to "models/tmp.json"
@@ -22,7 +22,7 @@ bool setup (BelaContext *context, void *userData) {
   resBankOptions.total = model.getSize();
 
   resBank.setup(resBankOptions, context->audioSampleRate, context->audioFrames);
-  resBank.setBank(model.get()); // pass the model parameters to the resonator bank
+  resBank.setBank(model.getModel()); // pass the model parameters to the resonator bank
   resBank.update(); // update the state of the bank based on the model parameters
 
   updateModelTaskInterval *= (int)(context->audioSampleRate / 1000); // ms to samples
@@ -37,7 +37,7 @@ void updateModel (void*) {
   rt_printf ("[AuxTask] Updating model...\n");
 
   model.load("models/tmp.json");
-  resBank.setBank(model.get());
+  resBank.setBank(model.getModel());
   resBank.update();
 
 }

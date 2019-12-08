@@ -70,11 +70,15 @@ typedef struct _ResonatorsWSOptions {
 typedef struct _ResonatorBankOptions {
     
     bool res = true; // global on/off
-    int  total; // total resonators
+    int  total = 0; // total resonators
     bool render = true; // should render
     bool updateRT = true; // should update in real-time
     int  updateRTRate; // millis
     bool v = true; // verbose printing
+    int defaultSize = 40;
+    int maxSize = 40;
+    float sampleRate = 0;
+    float audioFrames = 0;
 
     ResonatorOptions resOpt = {};
     

@@ -11,163 +11,124 @@
 Resonators::Resonators(){}
 Resonators::~Resonators(){}
 
-void Resonators::setup(std::string projectName, float sampleRate, float audioFrames){
-
-  resBankOptions.total = defaultModelSize;
-  model.reserve(defaultModelSize);
-  resBank.setup(resBankOptions, sampleRate, audioFrames);
-
-  wsopt.projectName = projectName;
-  ws.setup(wsopt.projectName, wsopt.port, wsopt.name);
-  ws.setControlDataCallback([this](const char* buf, int bufLen, void* customData)->bool{
-    onControl(buf, bufLen);
-    return true;
-  });
-
-}
-
-void Resonators::load(std::string modelPath) {
-  model.load(modelPath);
-  resBankOptions.total = model.getSize();
-  resBank.setOptions(resBankOptions);
-  resBank.setBank(getModel());
-  // TODO: pitch?
-}
-
-void Resonators::setModel(JSONValue *modelJSON) {
-  model.parse(modelJSON);
-  resBankOptions.total = model.getSize();
-  resBank.setOptions(resBankOptions);
-  resBank.setBank(getShiftedToNote(pitch));
-  // resBank.shiftToNote(pitch);
-  resBank.update();
-  // TODO: pitch?
-}
-
-// -------- MULTI BANK -----------------
-
-void Resonators::setup(int numBanks, std::string projectName, float sampleRate, float audioFrames){
-
-  banks = numBanks;
-
-  resBankOptions.total = defaultModelSize;
-
-  for (int i = 0; i < banks; ++i) {
-    ModelLoader tmp_model;
-    // tmp_model.reserve(defaultModelSize);
-    models.push_back(tmp_model);
-    models[i].reserve(defaultModelSize);
-
-    ResonatorBank tmp_res;
-    tmp_res.setup(resBankOptions, sampleRate, audioFrames);
-    bank.push_back(tmp_res);
-  }
-
-  wsopt.projectName = projectName;
-  // ws.setup(wsopt.port, wsopt.name, wsopt.projectName);
-  ws.setup(wsopt.projectName, wsopt.port, wsopt.name);
-  ws.setControlDataCallback([this](const char* buf, int bufLen, void* customData)->bool{
-    onControl(buf, bufLen);
-    return true;
-  });
-
-}
-
-void Resonators::load(int bankIndex, std::string modelPath) {
-  // TODO: index out of range check
-  int i = bankIndex;
-  models[i].load(modelPath);  
-  resBankOptions.total = models[i].getSize();
-  bank[i].setOptions(resBankOptions);
-  bank[i].setBank(getModel(i));
-}
-
-void Resonators::setModelAtBankIndex(int bankIndex, JSONValue *modelJSON) {
-  // TODO: index out of range check
-  int i = bankIndex;
-  models[i].parse(modelJSON);
-  resBankOptions.total = models[i].getSize();
-  bank[i].setOptions(resBankOptions);
-  bank[i].setBank(getShiftedToNote(i, pitch));
-  bank[i].update();
-}
-
-void Resonators::setResonatorParamAtBankIndex(int bankIndex, int resIndex, int paramIndex, float value) {
-  bank[bankIndex].setResonatorParam(resIndex, paramIndex, value);
-
-  rt_printf("[Resonators] setResonatorParamAtBankIndex() param %d: ", paramIndex);
-  ResonatorParams params = bank[bankIndex].getResonator(resIndex);
-  models[bankIndex].prettyPrintResonator(resIndex, params);
-}
-
-void Resonators::setResonatorAtBankIndex(int bankIndex, int resIndex, ResonatorParams params) {
-  bank[bankIndex].setResonator(resIndex, params);
-  rt_printf("[Resonators] setResonatorAtBankIndex() bank %d :", bankIndex);
-  models[bankIndex].prettyPrintResonator(resIndex, params);
-}
-
-void Resonators::setResonatorsAtBankIndex(int bankIndex, std::vector<int> indices, ResonatorParamVects paramVects) {
-  for (int i = 0; i < indices.size(); ++i) {
-    ResonatorParams p = {paramVects.freqs[i], paramVects.gains[i], paramVects.decays[i]};
-    setResonatorAtBankIndex(bankIndex, indices[i], p);
-  }
-}
-
-void Resonators::setResonatorsTest() {
-  // TODO: Move this func to Resonators.cpp as testSomething() ?
-  int bankIndex  = 0;
-  int resIndex   = 0;
-  int paramIndex = 0;
-  ResonatorParams p = {440.0f, 0.9f, 0.1f};
-
-  setResonatorParamAtBankIndex (bankIndex, resIndex, paramIndex, p.freq);
-  setResonatorAtBankIndex      (bankIndex, resIndex, p);
+void Resonators::setup(std::vector<std::string> modelPaths, std::vector<std::string> pitches, float sampleRate, float audioFrames, bool startGui) {
   
-  // std::vector<int> indexes = {0, 4, 7};
-  // ResonatorParamVects paramVects = {
-  //   {440.0f,  880.0f,  1320.0f},
-  //   {p.gain,  p.gain,  p.gain},
-  //   {p.decay, p.decay, p.decay},
-  // };
+  _totalBanks = modelPaths.size();
+  _bankOpts.reserve(_totalBanks);
+  _models.reserve(_totalBanks);
+  _banks.reserve(_totalBanks);
+  _pitches.reserve(_totalBanks);
 
-  // res.setResonatorsAtBankIndex (bankIndex, indexes, paramVects);
+  _modelPaths = modelPaths;
+  _pitches = pitches;
 
-  printModelAtIndex(bankIndex);
+  for (int i = 0; i < _totalBanks; ++i) {
+
+    // ResonatorBankOptions
+    ResonatorBankOptions tmp_opt = {};
+    tmp_opt.total       = tmp_opt.defaultSize;
+    tmp_opt.sampleRate  = sampleRate;
+    tmp_opt.audioFrames = audioFrames;
+    rt_printf("[Resonators] setup(): tmp_opt total %d, .defaultSize %d\n", tmp_opt.total, tmp_opt.defaultSize);
+    _bankOpts.push_back(tmp_opt);
+
+    // // ModelLoader
+    ModelLoader tmp_model;
+    _models.push_back(tmp_model);
+    _models[i].reserve(_bankOpts[i].defaultSize);
+    _models[i].load(_modelPaths[i]);
+    _models[i].shiftToNote(_pitches[i]);
+
+    // // ResonatorBank
+    ResonatorBank tmp_bank;
+    tmp_bank.setup(_bankOpts[i], sampleRate, audioFrames);
+    _banks.push_back(tmp_bank);
+    _banks[i].setOptions(_bankOpts[i]);
+    _banks[i].setBank(_models[i].getModel());
+    _banks[i].update();
+
+  }
+
+  if (startGui) setupWebSocket();
+
 }
 
-void Resonators::printModelAtIndex(int index){
-  models[index].prettyPrintModel();
+void Resonators::update() {
+  for (int i = 0; i < _totalBanks; ++i)
+    updateModel(i);
+}
+void Resonators::updateModel(int index) {
+  _banks[index].update();
+}
+float Resonators::render(int index, float in) {
+  return _banks[index].render(in);
+}
+std::vector<float> Resonators::render(std::vector<float> inputs) {
+  std::vector<float> outputs;
+  for (int i = 0; i < _totalBanks; ++i)
+    outputs.push_back(render(i, inputs[i]));
+  return outputs;
 }
 
-// ------------------------
+void Resonators::setModel(int bankIndex, std::string modelPath){
+  int i = bankIndex;
+  _modelPaths[i] = modelPath;
+  _models[i].load(_modelPaths[i]);
+
+  _models[i].shiftToNote(_pitches[i]);
+  _banks[i].setSize(_models[i].getSize());
+  _banks[i].setBank(_models[i].getModel());
+  _banks[i].update(); // TODO: remove?
+}
+
+void Resonators::setModel(int bankIndex, JSONValue *modelJSON){
+  int i = bankIndex;
+  _models[i].parse(modelJSON);
+
+  _models[i].shiftToNote(_pitches[i]);
+  _banks[i].setSize(_models[i].getSize());
+  _banks[i].setBank(_models[i].getModel());
+  _banks[i].update(); // TODO: remove?
+}
+
+void Resonators::setPitch(int bankIndex, std::string pitch){
+  int i = bankIndex;
+  _pitches[i] = pitch;
+  _models[i].shiftToNote(_pitches[i]);
+  _banks[i].setBank(_models[i].getModel());
+  _banks[i].update(); // TODO: remove?
+}
+
+void Resonators::setupWebSocket() {
+  _ws.setup(_wsOpt.projectName, _wsOpt.port, _wsOpt.name);
+  _ws.setControlDataCallback([this](const char* buf, int bufLen, void* customData)->bool {
+    onControl(buf, bufLen);
+    return true;
+  });
+}
 
 void Resonators::onControl(const char* buf, int bufLen) {
 
   JSONValue *value = parseJSON(buf);
   JSONObject root = value->AsObject();
 
-  // look for the "event" key
   if (root.find(L"event") != root.end() && root[L"event"]->IsString()){
     std::wstring event = root[L"event"]->AsString();
-    if (event.compare(L"connection-reply") == 0){
-      wsopt.isConnected = true;
-    }
+    if (event.compare(L"connection-reply") == 0)
+      _wsOpt.isConnected = true;
   } else if (root.find(L"command") != root.end() && root[L"command"]->IsString()){
     
     std::wstring cmd = root[L"command"]->AsString();
     JSONValue *args = value->Child(L"args");
 
-    if (cmd.compare(L"setResonator")           == 0) rt_printf("TODO: setResonator().\n");
-    if (cmd.compare(L"setModel")               == 0) setModel(args);
-    if (cmd.compare(L"setModelAtIndex")        == 0) onSetModelAtBankIndex(args);
-    if (cmd.compare(L"setResAtBankIndex")      == 0) onSetResAtBankIndex(args);
-    if (cmd.compare(L"setRessAtBankIndex")     == 0) onSetRessAtBankIndex(args);
-    if (cmd.compare(L"setResParamAtBankIndex") == 0) onSetResParamAtBankIndex(args);
+    if (cmd.compare(L"setModel") == 0) onSetModel(args);
+    if (cmd.compare(L"setPitch") == 0) onSetPitch(args);
+    // if (cmd.compare(L"setModels") == 0) onSetModels(args);
+    // if (cmd.compare(L"setPitches") == 0) onSetPitches(args);
 
   } else {
     rt_printf("[Resonators] Received JSON with unknown root name. Did not parse.\n");
   }
-
 
   delete value;
 }
@@ -182,125 +143,64 @@ JSONValue* Resonators::parseJSON(const char* buf){
   return value;
 }
 
-// ----------- WS control funcs --------------
-
-void Resonators::onSetModelAtBankIndex(JSONValue *args) {
+void Resonators::onSetModel(JSONValue *args) {
   JSONObject argsObj = args->AsObject();
-
-  int index        = (int) argsObj[L"index"]->AsNumber();
+  int index = (int) argsObj[L"index"]->AsNumber();
   JSONValue *model = args->Child(L"model");
-
-  // rt_printf("index: %d\n", index);
-  setModelAtBankIndex(index, model);
+  setModel(index, model);
 }
 
-void Resonators::onSetResAtBankIndex(JSONValue *args) {
+void Resonators::onSetPitch(JSONValue *args) {
   JSONObject argsObj = args->AsObject();
-  
-  int bankIndex = (int) argsObj[L"bankIndex"]->AsNumber();
-  int resIndex  = (int) argsObj[L"resIndex"]->AsNumber();
-
-  ResonatorParams params = model.parseResonatorJSON(argsObj);
-
-  // ResonatorParams params;
-  // params.freq   = (float) argsObj[L"freq"]->AsNumber();
-  // params.gain   = (float) argsObj[L"gain"]->AsNumber();
-  // params.decay  = (float) argsObj[L"decay"]->AsNumber();
-  
-  setResonatorAtBankIndex(bankIndex, resIndex, params);
-
+  int index = (int) argsObj[L"index"]->AsNumber();
+  std::string pitch = ws2s(args->Child(L"pitch")->AsString());
+  setPitch(index, pitch);
 }
-
-void Resonators::onSetResParamAtBankIndex(JSONValue *args) {
-  JSONObject argsObj = args->AsObject();
-
-  int bankIndex  = (int) argsObj[L"bankIndex"]->AsNumber();
-  int resIndex   = (int) argsObj[L"resIndex"]->AsNumber();
-  int paramIndex = (int) argsObj[L"paramIndex"]->AsNumber();
-
-  float value    = (float) argsObj[L"value"]->AsNumber();
-
-  setResonatorParamAtBankIndex(bankIndex, resIndex, paramIndex, value);
-}
-
-void Resonators::onSetRessAtBankIndex(JSONValue *args) {
-  JSONObject argsObj = args->AsObject();
-
-  int bankIndex  = (int) argsObj[L"bankIndex"]->AsNumber();
-
-  JSONArray resIndicesArray = argsObj[L"resIndices"]->AsArray();
-  std::vector<int> indices;
-  for (int i = 0; i < resIndicesArray.size(); ++i) 
-    indices[i] = (int) resIndicesArray[i]->AsNumber();
-
-  // TODO: What should this actually be.
-
-  // JSONArray paramVectsArray = argsObj[L"resIndices"]->AsArray();
-
-  // JSONValue *paramVectsValue = args->Child(L"paramVects");
-
-  // Remodel.parseResonatorJSON(argsObj);
-
-  // JSONValue *paramVectFreqs->Child(L"freqs");
-  // JSONValue *paramVectGains->Child(L"gains");
-  // JSONValue *paramVectDecays->Child(L"decays");
-
-  // ResonatorParamVects paramVects;
-
-  // setResonatorsAtBankIndex(bankIndex, indices, paramVects);
-}
-
-// ----------- WS utils --------------
 
 bool Resonators::isConnected(){
-  // TODO: Is this relevant anymore?
-  wsopt.isConnected = ws.isConnected();
-  return wsopt.isConnected;
+  _wsOpt.isConnected = _ws.isConnected();
+  return _wsOpt.isConnected;
 }
-
 void Resonators::monitor() {
-  if (ws.isConnected() && !wsopt.isConnected) {
-    rt_printf("[Resonators] Connected\n");
-    onConnect();
-  } else if (!ws.isConnected() && wsopt.isConnected) {
-    rt_printf("[Resonators] Disconnected\n");
-    onDisconnect();
-  }
+       if (_ws.isConnected() && !_wsOpt.isConnected) onConnect();
+  else if (!_ws.isConnected() && _wsOpt.isConnected) onDisconnect();
   isConnected();
 }
+void Resonators::onConnect()    {rt_printf("[Resonators] Connected\n");}
+void Resonators::onDisconnect() {rt_printf("[Resonators] Disconnected\n");}
 
-void Resonators::onConnect() {
-  // TODO: Is this relevant anymore?
-  // wsopt.modelSent = false;
+void Resonators::printModel(int index){
+  _models[index].prettyPrintModel();
 }
 
-void Resonators::onDisconnect() {
-  // TODO: Is this relevant anymore?
-  wsopt.modelSent = false;
+void Resonators::printDebugModel(int index){
+  std::vector<ResonatorParams> model = _models[index].getModel();
+  rt_printf("model[%d] size: %d\n", index, model.size());
+  for (int i = 0; i < model.size(); ++i) {
+    rt_printf("modelRes[%d] freq: %f gain: %f: decay: %f\n", i, model[i].freq, model[i].gain, model[i].decay);
+  }
 }
 
-// void Resonators::txModel(ResonatorParamVects resBankVects) {
+void Resonators::printDebugBank(int index){
+  std::vector<ResonatorParams> params = _banks[index].getBankAsParams();
+  rt_printf("banks[%d] size: %d\n", index, params.size());
+  for (int i = 0; i < params.size(); ++i) {
+    rt_printf("bankRes[%d] freq: %f gain: %f: decay: %f\n", i, params[i].freq, params[i].gain, params[i].decay);
+  }
+}
 
-//   rt_printf("[ResonatorsWS] Sending model\n");
+std::wstring Resonators::s2ws(const std::string& str)
+{
+    using convert_typeX = std::codecvt_utf8<wchar_t>;
+    std::wstring_convert<convert_typeX, wchar_t> converterX;
 
-//   ws.sendBuffer(kFreqs,  resBankVects.freqs);
-//   ws.sendBuffer(kGains,  resBankVects.gains);
-//   ws.sendBuffer(kDecays, resBankVects.decays);
-      
-//   wsopt.modelSent = true;
+    return converterX.from_bytes(str);
+}
 
-// }
+std::string Resonators::ws2s(const std::wstring& wstr)
+{
+    using convert_typeX = std::codecvt_utf8<wchar_t>;
+    std::wstring_convert<convert_typeX, wchar_t> converterX;
 
-// void Resonators::ifConnectedTxModel(ResonatorParamVects resBankVects) {
-//   if(isConnected() && !wsopt.modelSent) txModel(resBankVects);
-// }
-
-// void Resonators::txResonator(int resIndex, ResonatorParams resParams) {
-//   std::vector<float> resTx {(float)resIndex, resParams.freq, resParams.gain, resParams.decay};
-//   ws.sendBuffer(kResonator, resTx);
-// }
-
-// void Resonators::txResonatorParam(int resIndex, int paramIndex, float param){
-//   std::vector<float> paramTx {(float)resIndex, (float)paramIndex, param};
-//   ws.sendBuffer(kParam, paramTx);
-// }
+    return converterX.to_bytes(wstr);
+}

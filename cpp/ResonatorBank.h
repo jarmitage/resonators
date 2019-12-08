@@ -41,7 +41,8 @@ public:
     const ResonatorParamVects getBankAsVects();
 
     ResonatorBankOptions getOptions() { return opt; }
-    void setOptions (ResonatorBankOptions _options) { opt = _options; }
+    void setOptions (ResonatorBankOptions _options);
+    void setSize (int _total);
     
     float renderResonator(int index, float excitation);
     float render(float excitation);    

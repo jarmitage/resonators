@@ -1,7 +1,7 @@
 #include <Bela.h>
 
-#include "Resonators.h"
-#include "Model.h"
+#include "ResonatorBank.h"
+#include "ModelLoader.h"
 
 // Example 2: a bank of resonators based on a model file
 
@@ -15,7 +15,7 @@ bool setup (BelaContext *context, void *userData) {
   resBankOptions.total = model.getSize();
 
   resBank.setup(resBankOptions, context->audioSampleRate, context->audioFrames);
-  resBank.setBank(model.get()); // pass the model parameters to the resonator bank
+  resBank.setBank(model.getModel()); // pass the model parameters to the resonator bank
   resBank.update(); // update the state of the bank based on the model parameters
 
   return true;

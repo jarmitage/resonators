@@ -48,7 +48,10 @@ const ResonatorParams ResonatorBank::getResonator(const int index) {
 }
 
 void ResonatorBank::setBank(std::vector<ResonatorParams> bankParams) {
-  for (int i = 0; i < opt.total; ++i) setResonator(i, bankParams[i]);
+  for (int i = 0; i < opt.total; ++i) {
+    // rt_printf("setBank() %d\n", i);
+    setResonator(i, bankParams[i]);
+  }
 }
 
 const std::vector<float> ResonatorBank::getFreqs() {
@@ -96,6 +99,17 @@ float ResonatorBank::render(float excitation){
 
 void ResonatorBank::update(){
   for (int i = 0; i < opt.total; ++i) resBank[i].update();
+}
+
+void ResonatorBank::setOptions (ResonatorBankOptions _options) {
+  if (_options.total > opt.maxSize) {
+    _options.total = opt.maxSize;
+  }
+  opt = _options;
+}
+
+void ResonatorBank::setSize (int _total) {
+  if (_total <= opt.maxSize) opt.total = _total;
 }
 
 // private methods

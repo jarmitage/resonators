@@ -7,6 +7,9 @@
  * https://github.com/CNMAT/CNMAT-Externs/blob/6f0208d3a1/src/resonators~/resonators~.c
  */
 
+#ifndef ModelLoader_H_
+#define ModelLoader_H_
+
 #include <string>
 #include <vector>
 #include <fstream>
@@ -15,9 +18,6 @@
 
 // TODO: Circular dependency issue:
 // #include "ResonatorsTypes.h"
-
-#ifndef ModelLoader_H_
-#define ModelLoader_H_
 
 class ModelLoader {
 public:
@@ -31,7 +31,7 @@ public:
     std::wstring data = L""; // Read the JSON file into a `wstring`
 
     if (readJSONFile (opt.path, data) == false)
-      rt_printf ("[ModelLoader] Error: could not load model JSON file \'%s\'\n", opt.path.c_str());
+      rt_printf ("[ModelLoader] load() Error: could not load model JSON file \'%s\'\n", opt.path.c_str());
     else {
       JSONValue *parsedJSON = JSON::Parse(data.c_str());
       parse(parsedJSON);
@@ -43,7 +43,7 @@ public:
     parseMetadataJSON   (parsedJSON->Child(L"metadata"));
     parseResonatorsJSON (parsedJSON->Child(L"resonators"));
     // if (opt.v)
-    rt_printf ("[ModelLoader] Loaded model \'%ls\'\n", metadata.name.c_str());
+    rt_printf ("[ModelLoader] parse() Loaded model \'%ls\'\n", metadata.name.c_str());
   }
 
   ResonatorParams parseResonatorJSON(JSONObject resJSON){
@@ -86,7 +86,7 @@ public:
     if (opt.v) {
         int targetMidi = freqToMidi(targetFreq);
         std::string targetNote = midiToNoteName(targetMidi);
-        rt_printf("[Model] Shifted model to fundamental [ Name: \'%s\' | MIDI: %i | Freq: %.2f ]\n", targetNote.c_str(), targetMidi, targetFreq);
+        rt_printf("[ModelLoader] shiftToFreq() Shifted model to fundamental [ Name: \'%s\' | MIDI: %i | Freq: %.2f ]\n", targetNote.c_str(), targetMidi, targetFreq);
     }
 
     float shiftRatio = targetFreq / metadata.fundamental;
@@ -104,7 +104,7 @@ public:
     if (opt.v) {
         int targetMidi = freqToMidi(targetFreq);
         std::string targetNote = midiToNoteName(targetMidi);
-        rt_printf("[Model] Returning shifted model with fundamental [ Name: \'%s\' | MIDI: %i | Freq: %.2f ]\n", targetNote.c_str(), targetMidi, targetFreq);
+        rt_printf("[ModelLoader] getShiftedToFreq() Returning shifted model with fundamental [ Name: \'%s\' | MIDI: %i | Freq: %.2f ]\n", targetNote.c_str(), targetMidi, targetFreq);
     }
 
     std::vector<ResonatorParams> shiftedModel;
