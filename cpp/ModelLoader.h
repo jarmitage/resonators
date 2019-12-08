@@ -63,6 +63,7 @@ public:
   std::wstring getName() { return metadata.name; }
   float getFundamental() { return metadata.fundamental; }
   float getF0() { return getFundamental(); } // synonym
+  float getPitch() { return getFundamental(); } // synonym
   // void setF0(std::string noteName)
   int getSize() { return metadata.resonators; }
 

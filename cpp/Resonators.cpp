@@ -29,17 +29,16 @@ void Resonators::setup(std::vector<std::string> modelPaths, std::vector<std::str
     tmp_opt.total       = tmp_opt.defaultSize;
     tmp_opt.sampleRate  = sampleRate;
     tmp_opt.audioFrames = audioFrames;
-    rt_printf("[Resonators] setup(): tmp_opt total %d, .defaultSize %d\n", tmp_opt.total, tmp_opt.defaultSize);
     _bankOpts.push_back(tmp_opt);
 
-    // // ModelLoader
+    // ModelLoader
     ModelLoader tmp_model;
     _models.push_back(tmp_model);
     _models[i].reserve(_bankOpts[i].defaultSize);
     _models[i].load(_modelPaths[i]);
     _models[i].shiftToNote(_pitches[i]);
 
-    // // ResonatorBank
+    // ResonatorBank
     ResonatorBank tmp_bank;
     tmp_bank.setup(_bankOpts[i], sampleRate, audioFrames);
     _banks.push_back(tmp_bank);
@@ -99,6 +98,30 @@ void Resonators::setPitch(int bankIndex, std::string pitch){
   _banks[i].update(); // TODO: remove?
 }
 
+void Resonators::setResonators(int bankIndex, std::vector<int> resIndexes, std::vector<ResonatorParams> params){
+  for (int i = 0; i < params.size(); ++i) {
+    ResonatorParams tmp_p = {params[i].freq, params[i].gain, params[i].decay};
+    _banks[bankIndex].setResonator(resIndexes[i], tmp_p);
+  }
+  _banks[bankIndex].update();
+}
+
+std::vector<ResonatorParams> Resonators::getModel(int bankIndex) {
+  return _models[bankIndex].getModel();
+}
+
+std::string Resonators::getPitch(int bankIndex) {
+  return _pitches[bankIndex];
+}
+
+std::vector<ResonatorParams> Resonators::getResonators(int bankIndex, std::vector<int> resIndexes) {
+  std::vector<ResonatorParams> params = {};
+  for (int i = 0; i < resIndexes.size(); ++i) {
+    params.push_back(_banks[i].getResonator(resIndexes[i]));
+  }
+  return params;
+}
+
 void Resonators::setupWebSocket() {
   _ws.setup(_wsOpt.projectName, _wsOpt.port, _wsOpt.name);
   _ws.setControlDataCallback([this](const char* buf, int bufLen, void* customData)->bool {
@@ -121,8 +144,9 @@ void Resonators::onControl(const char* buf, int bufLen) {
     std::wstring cmd = root[L"command"]->AsString();
     JSONValue *args = value->Child(L"args");
 
-    if (cmd.compare(L"setModel") == 0) onSetModel(args);
-    if (cmd.compare(L"setPitch") == 0) onSetPitch(args);
+    if (cmd.compare(L"setModel") == 0)      onSetModel(args);
+    if (cmd.compare(L"setPitch") == 0)      onSetPitch(args);
+    if (cmd.compare(L"setResonators") == 0) onSetResonators(args);
     // if (cmd.compare(L"setModels") == 0) onSetModels(args);
     // if (cmd.compare(L"setPitches") == 0) onSetPitches(args);
 
@@ -155,6 +179,14 @@ void Resonators::onSetPitch(JSONValue *args) {
   int index = (int) argsObj[L"index"]->AsNumber();
   std::string pitch = ws2s(args->Child(L"pitch")->AsString());
   setPitch(index, pitch);
+}
+
+void Resonators::onSetResonators(JSONValue *args) {
+  // JSONObject argsObj = args->AsObject();
+  // int bankIndex = (int) argsObj[L"bankIndex"]->AsNumber();
+  // int resIndexes[] = (int) argsObj[L"resIndexes"]->AsArray();
+  // JSONValue *params = args->Child(L"params");
+  // setResonators(bankIndex, resIndexes, params);
 }
 
 bool Resonators::isConnected(){

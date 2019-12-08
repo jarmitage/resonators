@@ -38,9 +38,13 @@ public:
     void setModel(int bankIndex, std::string modelPath);
     void setModel(int bankIndex, JSONValue *modelJSON);
     void setPitch(int bankIndex, std::string pitch);
+    void setResonators(int bankIndex, std::vector<int> resIndexes, std::vector<ResonatorParams> params);
     // void setModels(std::vector<std::string> modelPaths);
     // void setModels(std::vector<JSONValue> *modelsJSON);
     // void setPitches(std::vector<std::string> pitches);
+    std::vector<ResonatorParams> getModel(int bankIndex);
+    std::string getPitch(int bankIndex);
+    std::vector<ResonatorParams> getResonators(int bankIndex, std::vector<int> resIndexes);
 
 private:
     // WebSocket
@@ -53,6 +57,7 @@ private:
     JSONValue* parseJSON(const char* buf);
     void onSetModel(JSONValue *args);
     void onSetPitch(JSONValue *args);
+    void onSetResonators(JSONValue *args);
     
     // WebSocket comms
     void monitor();
