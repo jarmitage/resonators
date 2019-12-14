@@ -54,9 +54,9 @@ void Resonators::setup(std::vector<std::string> modelPaths, std::vector<std::str
 
 void Resonators::update() {
   for (int i = 0; i < _totalBanks; ++i)
-    updateModel(i);
+    updateBank(i);
 }
-void Resonators::updateModel(int index) {
+void Resonators::updateBank(int index) {
   _banks[index].update();
 }
 float Resonators::render(int index, float in) {
@@ -124,47 +124,22 @@ std::vector<ResonatorParams> Resonators::getResonators(int bankIndex, std::vecto
 
 void Resonators::setupWebSocket() {
   _ws.setup(_wsOpt.projectName, _wsOpt.port, _wsOpt.name);
-  _ws.setControlDataCallback([this](const char* buf, int bufLen, void* customData)->bool {
-    onControl(buf, bufLen);
+  _ws.setControlDataCallback([this](JSONObject& root, void* customData)->bool {
+    onControl(root);
     return true;
   });
 }
 
-void Resonators::onControl(const char* buf, int bufLen) {
-
-  JSONValue *value = parseJSON(buf);
-  JSONObject root = value->AsObject();
-
-  if (root.find(L"event") != root.end() && root[L"event"]->IsString()){
-    std::wstring event = root[L"event"]->AsString();
-    if (event.compare(L"connection-reply") == 0)
-      _wsOpt.isConnected = true;
-  } else if (root.find(L"command") != root.end() && root[L"command"]->IsString()){
-    
+void Resonators::onControl(JSONObject root) {
+  if (root.find(L"command") != root.end() && root[L"command"]->IsString()){
     std::wstring cmd = root[L"command"]->AsString();
-    JSONValue *args = value->Child(L"args");
-
-    if (cmd.compare(L"setModel") == 0)      onSetModel(args);
-    if (cmd.compare(L"setPitch") == 0)      onSetPitch(args);
+    JSONValue *args = root[L"args"];
+    if (cmd.compare(L"setModel")      == 0) onSetModel(args);
+    if (cmd.compare(L"setPitch")      == 0) onSetPitch(args);
     if (cmd.compare(L"setResonators") == 0) onSetResonators(args);
-    // if (cmd.compare(L"setModels") == 0) onSetModels(args);
-    // if (cmd.compare(L"setPitches") == 0) onSetPitches(args);
-
   } else {
     rt_printf("[Resonators] Received JSON with unknown root name. Did not parse.\n");
   }
-
-  delete value;
-}
-
-JSONValue* Resonators::parseJSON(const char* buf){
-  // parse the data into a JSONValue
-  JSONValue *value = JSON::Parse(buf);
-  if (value == NULL || !value->IsObject()){
-    fprintf(stderr, "Could not parse JSON:\n%s\n", buf);
-    return nullptr;
-  }
-  return value;
 }
 
 void Resonators::onSetModel(JSONValue *args) {
@@ -187,6 +162,11 @@ void Resonators::onSetResonators(JSONValue *args) {
   // int resIndexes[] = (int) argsObj[L"resIndexes"]->AsArray();
   // JSONValue *params = args->Child(L"params");
   // setResonators(bankIndex, resIndexes, params);
+}
+
+void Resonators::wsSendControl(JSONObject root){
+  JSONValue* value = new JSONValue (root);
+  _ws.sendControl(value);
 }
 
 bool Resonators::isConnected(){

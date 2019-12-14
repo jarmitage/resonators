@@ -29,7 +29,7 @@ public:
     void setup(std::vector<std::string> modelPaths, std::vector<std::string> pitches, float sampleRate, float audioFrames, bool startGui);
 
     void update();
-    void updateModel(int index);
+    void updateBank(int index);
 
     float render(float in);
     float render(int index, float in);
@@ -46,6 +46,11 @@ public:
     std::string getPitch(int bankIndex);
     std::vector<ResonatorParams> getResonators(int bankIndex, std::vector<int> resIndexes);
 
+    // WS GUI
+    void wsSendBufferInt(int val){_ws.sendBuffer(0, val);}
+    void wsSendControl(JSONObject root);
+    bool wsIsConnected(){return isConnected();}
+
 private:
     // WebSocket
     Gui _ws;
@@ -53,8 +58,7 @@ private:
     void setupWebSocket();
 
     // Control data parsing functions
-    void onControl(const char* buf, int bufLen);
-    JSONValue* parseJSON(const char* buf);
+    void onControl(JSONObject root);
     void onSetModel(JSONValue *args);
     void onSetPitch(JSONValue *args);
     void onSetResonators(JSONValue *args);

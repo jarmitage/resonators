@@ -43,7 +43,7 @@ public:
     parseMetadataJSON   (parsedJSON->Child(L"metadata"));
     parseResonatorsJSON (parsedJSON->Child(L"resonators"));
     // if (opt.v)
-    rt_printf ("[ModelLoader] parse() Loaded model \'%ls\'\n", metadata.name.c_str());
+    // rt_printf ("[ModelLoader] parse() Loaded model \'%ls\'\n", metadata.name.c_str());
   }
 
   ResonatorParams parseResonatorJSON(JSONObject resJSON){
@@ -233,17 +233,17 @@ private:
 
   // Used by load() to parse the model resonators array
   void parseResonatorsJSON(JSONValue* resJSON) {
-      if (opt.v) prettyPrintModelHeader();
+      // if (opt.v) prettyPrintModelHeader();
 
       JSONArray resArray = resJSON->AsArray();
 
       for (unsigned int i = 0; i < resArray.size(); i++) {
           ResonatorParams tmp_p = parseResonatorJSON(resArray[i]->AsObject());
           addResonatorToModelAtIndex(i, tmp_p);
-          if (opt.v) prettyPrintResonator(i, tmp_p);
+          // if (opt.v) prettyPrintResonator(i, tmp_p);
       }
 
-      if (opt.v) prettyPrintModelFooter();
+      // if (opt.v) prettyPrintModelFooter();
   }
 
   void addResonatorToModelAtIndex(int i, ResonatorParams p) {
