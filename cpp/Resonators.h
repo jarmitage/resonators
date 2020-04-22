@@ -13,10 +13,7 @@
 #include <stdio.h>
 #include <vector>
 #include <string> 
-#include <locale> 
-#include <codecvt>
 
-#include <libraries/Gui/Gui.h>
 #include "ResonatorBank.h"
 #include "ModelLoader.h"
 // #include "../Utils/Pitch.h"
@@ -26,10 +23,10 @@ public:
     Resonators();
     ~Resonators();
 
-    void setup(std::vector<std::string> modelPaths, std::vector<std::string> pitches, float sampleRate, float audioFrames, bool startGui);
+    void setup(std::vector<std::string> modelPaths, std::vector<std::string> pitches, float sampleRate, float audioFrames);
 
     void update();
-    void updateModel(int index);
+    void updateBank(int index);
 
     float render(float in);
     float render(int index, float in);
@@ -48,22 +45,7 @@ public:
 
 private:
     // WebSocket
-    Gui _ws;
     ResonatorsWSOptions _wsOpt = {};
-    void setupWebSocket();
-
-    // Control data parsing functions
-    void onControl(const char* buf, int bufLen);
-    JSONValue* parseJSON(const char* buf);
-    void onSetModel(JSONValue *args);
-    void onSetPitch(JSONValue *args);
-    void onSetResonators(JSONValue *args);
-    
-    // WebSocket comms
-    void monitor();
-    bool isConnected();
-    void onConnect();
-    void onDisconnect();
 
     std::vector<ResonatorBankOptions> _bankOpts;
     std::vector<ResonatorBank>        _banks;
@@ -77,8 +59,6 @@ private:
     void printDebugModel(int index);
     void printDebugBank(int index);
 
-    std::wstring s2ws(const std::string& str);
-    std::string ws2s(const std::wstring& wstr);
 };
 
 #endif /* Resonators_H_ */

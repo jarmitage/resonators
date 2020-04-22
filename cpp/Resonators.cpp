@@ -11,7 +11,7 @@
 Resonators::Resonators(){}
 Resonators::~Resonators(){}
 
-void Resonators::setup(std::vector<std::string> modelPaths, std::vector<std::string> pitches, float sampleRate, float audioFrames, bool startGui) {
+void Resonators::setup(std::vector<std::string> modelPaths, std::vector<std::string> pitches, float sampleRate, float audioFrames) {
   
   _totalBanks = modelPaths.size();
   _bankOpts.reserve(_totalBanks);
@@ -48,15 +48,13 @@ void Resonators::setup(std::vector<std::string> modelPaths, std::vector<std::str
 
   }
 
-  if (startGui) setupWebSocket();
-
 }
 
 void Resonators::update() {
   for (int i = 0; i < _totalBanks; ++i)
-    updateModel(i);
+    updateBank(i);
 }
-void Resonators::updateModel(int index) {
+void Resonators::updateBank(int index) {
   _banks[index].update();
 }
 float Resonators::render(int index, float in) {
@@ -122,85 +120,6 @@ std::vector<ResonatorParams> Resonators::getResonators(int bankIndex, std::vecto
   return params;
 }
 
-void Resonators::setupWebSocket() {
-  _ws.setup(_wsOpt.projectName, _wsOpt.port, _wsOpt.name);
-  _ws.setControlDataCallback([this](const char* buf, int bufLen, void* customData)->bool {
-    onControl(buf, bufLen);
-    return true;
-  });
-}
-
-void Resonators::onControl(const char* buf, int bufLen) {
-
-  JSONValue *value = parseJSON(buf);
-  JSONObject root = value->AsObject();
-
-  if (root.find(L"event") != root.end() && root[L"event"]->IsString()){
-    std::wstring event = root[L"event"]->AsString();
-    if (event.compare(L"connection-reply") == 0)
-      _wsOpt.isConnected = true;
-  } else if (root.find(L"command") != root.end() && root[L"command"]->IsString()){
-    
-    std::wstring cmd = root[L"command"]->AsString();
-    JSONValue *args = value->Child(L"args");
-
-    if (cmd.compare(L"setModel") == 0)      onSetModel(args);
-    if (cmd.compare(L"setPitch") == 0)      onSetPitch(args);
-    if (cmd.compare(L"setResonators") == 0) onSetResonators(args);
-    // if (cmd.compare(L"setModels") == 0) onSetModels(args);
-    // if (cmd.compare(L"setPitches") == 0) onSetPitches(args);
-
-  } else {
-    rt_printf("[Resonators] Received JSON with unknown root name. Did not parse.\n");
-  }
-
-  delete value;
-}
-
-JSONValue* Resonators::parseJSON(const char* buf){
-  // parse the data into a JSONValue
-  JSONValue *value = JSON::Parse(buf);
-  if (value == NULL || !value->IsObject()){
-    fprintf(stderr, "Could not parse JSON:\n%s\n", buf);
-    return nullptr;
-  }
-  return value;
-}
-
-void Resonators::onSetModel(JSONValue *args) {
-  JSONObject argsObj = args->AsObject();
-  int index = (int) argsObj[L"index"]->AsNumber();
-  JSONValue *model = args->Child(L"model");
-  setModel(index, model);
-}
-
-void Resonators::onSetPitch(JSONValue *args) {
-  JSONObject argsObj = args->AsObject();
-  int index = (int) argsObj[L"index"]->AsNumber();
-  std::string pitch = ws2s(args->Child(L"pitch")->AsString());
-  setPitch(index, pitch);
-}
-
-void Resonators::onSetResonators(JSONValue *args) {
-  // JSONObject argsObj = args->AsObject();
-  // int bankIndex = (int) argsObj[L"bankIndex"]->AsNumber();
-  // int resIndexes[] = (int) argsObj[L"resIndexes"]->AsArray();
-  // JSONValue *params = args->Child(L"params");
-  // setResonators(bankIndex, resIndexes, params);
-}
-
-bool Resonators::isConnected(){
-  _wsOpt.isConnected = _ws.isConnected();
-  return _wsOpt.isConnected;
-}
-void Resonators::monitor() {
-       if (_ws.isConnected() && !_wsOpt.isConnected) onConnect();
-  else if (!_ws.isConnected() && _wsOpt.isConnected) onDisconnect();
-  isConnected();
-}
-void Resonators::onConnect()    {rt_printf("[Resonators] Connected\n");}
-void Resonators::onDisconnect() {rt_printf("[Resonators] Disconnected\n");}
-
 void Resonators::printModel(int index){
   _models[index].prettyPrintModel();
 }
@@ -219,20 +138,4 @@ void Resonators::printDebugBank(int index){
   for (int i = 0; i < params.size(); ++i) {
     rt_printf("bankRes[%d] freq: %f gain: %f: decay: %f\n", i, params[i].freq, params[i].gain, params[i].decay);
   }
-}
-
-std::wstring Resonators::s2ws(const std::string& str)
-{
-    using convert_typeX = std::codecvt_utf8<wchar_t>;
-    std::wstring_convert<convert_typeX, wchar_t> converterX;
-
-    return converterX.from_bytes(str);
-}
-
-std::string Resonators::ws2s(const std::wstring& wstr)
-{
-    using convert_typeX = std::codecvt_utf8<wchar_t>;
-    std::wstring_convert<convert_typeX, wchar_t> converterX;
-
-    return converterX.to_bytes(wstr);
 }
