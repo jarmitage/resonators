@@ -4,14 +4,18 @@ export default class BelaData extends BelaWebSocket {
 	constructor(port=5555, address='gui_control', ip='192.168.7.2') {
 		super(port, address, ip)
 		this.projectName = null;
-		this.sliders = [];
-		this.selectors = [];
+
+		this.sliders     = [];
+		this.selectors   = [];
+		
 		this.target = new EventTarget();
 		this.events = [
 		    new CustomEvent('new-slider',     { detail: { id: null          } }),
 		    new CustomEvent('new-select',     { detail: { id: null          } }),
-		    new CustomEvent('new-connection', { detail: { projectName: null } })
+		    new CustomEvent('new-connection', { detail: { projectName: null } }),
+		    new CustomEvent('custom',         { detail: { args: null} })
 		];
+
 	}
 
 	onData (data, parsedData) {
@@ -43,6 +47,10 @@ export default class BelaData extends BelaWebSocket {
 	        }
 	        this.events[1].detail.id = parsedData.select;
 	        this.target.dispatchEvent(this.events[1]);
+	    } else {
+	    	// console.log("[BelaControl] onData(): Custom control data:", parsedData)
+	    	this.events[3].detail.args = parsedData
+	    	this.target.dispatchEvent(this.events[3])
 	    }
 	}
 
