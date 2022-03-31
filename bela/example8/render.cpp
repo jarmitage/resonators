@@ -28,6 +28,15 @@ Gui gui;
 JSONUtils           json_u;
 JSONOnUpdateParsers json_p;
 
+void onControl(JSONObject root) {
+  std::wstring cmd;
+  if (json_u.isCmd(root, cmd)) {
+    JSONValue *args = root[L"args"];
+    else if (json_u.isWS(cmd, L"updateModel")) json_p.onUpdateResModel(res, args);
+    else if (json_u.isWS(cmd, L"updatePitch")) json_p.onUpdateResPitch(res, args);
+  }
+}
+
 bool setup (BelaContext *context, void *userData) {
   res.setup(modelPaths, modelPitches, context->audioSampleRate, context->audioFrames);
 
@@ -36,7 +45,7 @@ bool setup (BelaContext *context, void *userData) {
   // res.setPitch(0, "c4");
 
   gui.setup(context->projectName);
-  gui.setControlDataCallback([this](JSONObject& root, void* customData)->bool {
+  gui.setControlDataCallback([](JSONObject& root, void* customData)->bool {
     onControl(root);
     return true;
   });
@@ -60,15 +69,6 @@ void render (BelaContext *context, void *userData) {
     }
     audioWrite(context, n, 0, out * output_gain);
     audioWrite(context, n, 1, out * output_gain);
-  }
-}
-
-void onControl(JSONObject root) {
-  std::wstring cmd;
-  if (json_u.isCmd(root, cmd)) {
-    JSONValue *args = root[L"args"];
-    else if (json_u.isWS(cmd, L"updateModel")) json_p.onUpdateResModel(res, args);
-    else if (json_u.isWS(cmd, L"updatePitch")) json_p.onUpdateResPitch(res, args);
   }
 }
 
