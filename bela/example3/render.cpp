@@ -1,8 +1,8 @@
 #include <vector>
 #include <Bela.h>
 
-#include "Resonators.h"
-#include "Model.h"
+#include "ResonatorBank.h"
+#include "ModelLoader.h"
 
 // Example 3: a bank of resonators based on a model file, updating periodically
 // This assumes you are e.g. sending updated models via `scp` to "models/tmp.json"
@@ -37,7 +37,7 @@ void updateModel (void*) {
   rt_printf ("[AuxTask] Updating model...\n");
 
   model.load("models/tmp.json");
-  resBank.setBank(model.get());
+  resBank.setBank(model.getModel());
   resBank.update();
 
 }

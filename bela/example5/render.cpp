@@ -3,8 +3,8 @@
 #include <Bela.h>
 #include <Scope.h>
 
-#include "Resonators.h"
-#include "Model.h"
+#include "ResonatorBank.h"
+#include "ModelLoader.h"
 
 // Example 5: combination of examples 3 & 4, plus Bela scope for inputs
 

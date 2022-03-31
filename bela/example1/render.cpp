@@ -1,6 +1,6 @@
 #include <Bela.h>
 
-#include "Resonators.h"
+#include "Resonator.h"
 
 // Example 1: an individual resonator
 

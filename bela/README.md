@@ -20,3 +20,13 @@
 ## Example 5
 
 - Combination of examples 3 & 4, plus Bela scope for inputs
+
+## Example 6 (NEW)
+
+- Simplified API for setting up multiple models and pitches, with optional use of Gui library
+
+## Example 7 (NEW)
+
+- Example 6 but with 4x analog inputs instead of 2x audio inputs
+
+

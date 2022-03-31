@@ -1,7 +1,7 @@
 #include <Bela.h>
 
-#include "Resonators.h"
-#include "Model.h"
+#include "ResonatorBank.h"
+#include "ModelLoader.h"
 
 // Example 2: a bank of resonators based on a model file
 
